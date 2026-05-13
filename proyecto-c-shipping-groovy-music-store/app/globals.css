@@ -1,26 +1,48 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Fondo general (El rosa más clarito de la imagen: #fff5f7) */
+  --background: #fff5f7;
+  
+  /* Texto principal (El rojo más oscuro para contraste: #af273e) */
+  --foreground: #af273e;
+
+  /* Componentes internos (Tarjetas, Fichas) */
+  --card: #fed1d9;       /* Rosa pálido de la imagen para el fondo de tarjeta */
+  --card-foreground: #af273e; /* Texto oscuro en tarjeta */
+  
+  /* Bordes, separadores y detalles sutiles */
+  --border: #fca1b1;     /* Rosa medio de la imagen para bordes suaves */
+
+  /* Elementos atenuados (Texto secundario, iconos) */
+  --muted: #f0637d;      /* Rosa vibrante de la imagen para elementos secundarios */
+  --muted-foreground: #af273e;
+
+  /* Acentos y Estados destacados */
+  --accent: #f0637d;     /* Rosa vibrante para resaltar */
+  --accent-foreground: #ffffff; /* Blanco para que el texto resalte sobre el rosa vibrante */
 }
 
 @theme inline {
+  /* Definimos los nombres semánticos en Tailwind v4 */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  
+  /* Mantener fuentes Geist si las configuraste */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* Forzamos que este tema sea siempre claro, ignorando el modo del sistema */
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
