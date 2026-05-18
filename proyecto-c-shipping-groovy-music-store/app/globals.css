@@ -1,30 +1,32 @@
 @import "tailwindcss";
 
 :root {
-  /* Fondo general (El rosa más clarito de la imagen: #fff5f7) */
-  --background: #fff5f7;
+  /* Fondo general: Un rosa pastel ultra suave y limpio (Tailwind pink-50) */
+  --background: #fdf2f8; 
   
-  /* Texto principal (El rojo más oscuro para contraste: #af273e) */
-  --foreground: #af273e;
+  /* Texto: Un tono casi negro con un levísimo toque de cereza para máxima legibilidad */
+  --foreground: #170308; 
 
-  /* Componentes internos (Tarjetas, Fichas) */
-  --card: #fed1d9;       /* Rosa pálido de la imagen para el fondo de tarjeta */
-  --card-foreground: #af273e; /* Texto oscuro en tarjeta */
+  /* Tarjetas: Blancas. Esto es CLAVE para que se vea lindo y no sature la vista */
+  --card: #ffffff; 
+  --card-foreground: #170308;
+
+  /* Bordes: Un rosa sutil para separar elementos delicadamente */
+  --border: #fbcfe8;
+
+  /* Elementos atenuados (Fondos secundarios, botones inactivos) */
+  --muted: #fce7f3;
+  --muted-foreground: #4c0519;
+
+  /* Acentos (Botones principales, íconos): Un rosa frambuesa hermoso y vibrante */
+  --accent: #fb7185;
+  --accent-foreground: #ffffff;
   
-  /* Bordes, separadores y detalles sutiles */
-  --border: #fca1b1;     /* Rosa medio de la imagen para bordes suaves */
-
-  /* Elementos atenuados (Texto secundario, iconos) */
-  --muted: #f0637d;      /* Rosa vibrante de la imagen para elementos secundarios */
-  --muted-foreground: #af273e;
-
-  /* Acentos y Estados destacados */
-  --accent: #f0637d;     /* Rosa vibrante para resaltar */
-  --accent-foreground: #ffffff; /* Blanco para que el texto resalte sobre el rosa vibrante */
+  /* Sombra/Anillo cuando haces clic o navegas con teclado */
+  --ring: #fb7185;
 }
 
 @theme inline {
-  /* Definimos los nombres semánticos en Tailwind v4 */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -34,15 +36,18 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
-  
-  /* Mantener fuentes Geist si las configuraste */
+  --color-ring: var(--ring);
+
+  /* Mantenemos las fuentes de tu proyecto */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-/* Forzamos que este tema sea siempre claro, ignorando el modo del sistema */
 body {
   background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  /* Estos dos ajustes hacen que la tipografía se vea mucho más suave y premium en pantalla */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
