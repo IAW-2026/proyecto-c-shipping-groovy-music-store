@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ClerkProvider } from "@clerk/nextjs";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -23,13 +24,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es">
-      {/* Aplicamos el fondo y color de texto a TODO el sitio web */}
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#e3e9ea] text-[#4e5d66]`}
-      >
-        {children}
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="es">
+        <body
+          className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#e3e9ea] text-[#4e5d66]`}
+        >
+          {children}
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }
