@@ -3,11 +3,6 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-
-  // =====================================================
-  // EMPRESAS
-  // =====================================================
-
   const fastShip = await prisma.empresa.create({
     data: {
       nombre: "FastShip Logistics",
@@ -26,9 +21,6 @@ async function main() {
     },
   });
 
-  // =====================================================
-  // USUARIOS
-  // =====================================================
 
   await prisma.usuario.createMany({
     data: [
@@ -67,9 +59,6 @@ async function main() {
     ],
   });
 
-  // =====================================================
-  // DIRECCIONES
-  // =====================================================
 
   const direccion1 = await prisma.direccion.create({
     data: {
@@ -110,10 +99,6 @@ async function main() {
       pais: "Argentina",
     },
   });
-
-  // =====================================================
-  // ENVIOS
-  // =====================================================
 
   const envio1 = await prisma.envio.create({
     data: {
@@ -158,10 +143,6 @@ async function main() {
       empresaId: fastShip.id,
     },
   });
-
-  // =====================================================
-  // EVENTOS
-  // =====================================================
 
   await prisma.eventoDeEnvio.createMany({
     data: [
