@@ -27,17 +27,28 @@ export default function EnvioCard({ envio }: { envio: any }) {
     setMostrarDropdown(false);
     setCargando(true);
 
-    await fetch(`/api/envios/${envio.id}/estado`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ estado: nuevoEstado }),
-    });
+    try {
+      const res = await fetch(`/api/envios/${envio.id}/estado`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ estado: nuevoEstado }),
+      });
 
-    window.dispatchEvent(new CustomEvent("estadoCambiado", {
-      detail: { anterior: estadoAnterior, nuevo: nuevoEstado }
-    }));
+      if (!res.ok) {
+        setEstadoActual(estadoAnterior);
+        alert("Error al cambiar estado");
+        return;
+      }
 
-    setCargando(false);
+      window.dispatchEvent(new CustomEvent("estadoCambiado", {
+        detail: { anterior: estadoAnterior, nuevo: nuevoEstado }
+      }));
+    } catch (error) {
+      setEstadoActual(estadoAnterior);
+      alert("Error al cambiar estado");
+    } finally {
+      setCargando(false);
+    }
   }
 
   return (
