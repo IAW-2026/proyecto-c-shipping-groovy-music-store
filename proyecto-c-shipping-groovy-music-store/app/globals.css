@@ -1,29 +1,34 @@
 @import "tailwindcss";
 
 :root {
-  /* Fondo general: Un rosa pastel ultra suave y limpio (Tailwind pink-50) */
-  --background: #fdf2f8; 
+  /* Fondo general: Durazno claro para una base cálida y limpia */
+  --background: #fcd8c5; 
   
-  /* Texto: Un tono casi negro con un levísimo toque de cereza para máxima legibilidad */
-  --foreground: #170308; 
+  /* Texto principal: Oscuro casi negro para asegurar lectura perfecta */
+  --foreground: #1a0b0e; 
 
-  /* Tarjetas: Blancas. Esto es CLAVE para que se vea lindo y no sature la vista */
+  /* Tarjetas y elementos: Blancas para que "salten" sobre el fondo durazno */
   --card: #ffffff; 
-  --card-foreground: #170308;
+  --card-foreground: #1a0b0e;
 
-  /* Bordes: Un rosa sutil para separar elementos delicadamente */
-  --border: #fbcfe8;
+  /* Bordes: El rosa de tu paleta, da estructura sin ser agresivo */
+  --border: #eb889e;
 
-  /* Elementos atenuados (Fondos secundarios, botones inactivos) */
-  --muted: #fce7f3;
-  --muted-foreground: #4c0519;
+  /* Elementos atenuados (Fondos secundarios, estados hover) */
+  --muted: #eb889e;
+  /* Texto secundario oscuro para mantener legibilidad */
+  --muted-foreground: #4a2b32;
 
-  /* Acentos (Botones principales, íconos): Un rosa frambuesa hermoso y vibrante */
-  --accent: #fb7185;
+  /* Acentos (Botones principales): El naranja-rojizo más vibrante */
+  --accent: #f3692f;
   --accent-foreground: #ffffff;
   
-  /* Sombra/Anillo cuando haces clic o navegas con teclado */
-  --ring: #fb7185;
+  /* Elementos estructurales (Header, Footer): Verde agua (teal) para un contraste retro hermoso */
+  --primary: #9db7b4;
+  --primary-foreground: #1a0b0e; /* Letras oscuras porque el verde es un tono medio/claro */
+  
+  /* Sombra/Anillo cuando haces clic o navegas con teclado: El naranja intermedio */
+  --ring: #ea8a24;
 }
 
 @theme inline {
@@ -36,6 +41,8 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
   --color-ring: var(--ring);
 
   /* Mantenemos las fuentes de tu proyecto */
@@ -47,7 +54,6 @@ body {
   background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
-  /* Estos dos ajustes hacen que la tipografía se vea mucho más suave y premium en pantalla */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

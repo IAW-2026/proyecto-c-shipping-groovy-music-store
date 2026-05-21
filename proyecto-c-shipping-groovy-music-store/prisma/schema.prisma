@@ -27,7 +27,7 @@ model Empresa {
 model Usuario {
   id_clerk String  @id
   mail     String
-
+  role String @default("OPERADOR")
   empresaId Int
   empresa   Empresa @relation("EmpresaEmplea", fields: [empresaId], references: [id])
 }
