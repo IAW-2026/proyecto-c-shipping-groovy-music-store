@@ -1,34 +1,37 @@
 @import "tailwindcss";
 
 :root {
-  /* Fondo general: Durazno claro para una base cálida y limpia */
-  --background: #fcd8c5; 
-  
-  /* Texto principal: Oscuro casi negro para asegurar lectura perfecta */
-  --foreground: #1a0b0e; 
+  /* Fondo general */
+  --background: #EFEBE1;
 
-  /* Tarjetas y elementos: Blancas para que "salten" sobre el fondo durazno */
-  --card: #ffffff; 
-  --card-foreground: #1a0b0e;
+  /* Texto principal */
+  --foreground: #2D2D2D;
 
-  /* Bordes: El rosa de tu paleta, da estructura sin ser agresivo */
-  --border: #eb889e;
+  /* Tarjetas y paneles */
+  --card: #FFFFFF;
+  --card-foreground: #2D2D2D;
 
-  /* Elementos atenuados (Fondos secundarios, estados hover) */
-  --muted: #eb889e;
-  /* Texto secundario oscuro para mantener legibilidad */
-  --muted-foreground: #4a2b32;
+  /* Bordes */
+  --border: #D5D1C8;
 
-  /* Acentos (Botones principales): El naranja-rojizo más vibrante */
-  --accent: #f3692f;
-  --accent-foreground: #ffffff;
-  
-  /* Elementos estructurales (Header, Footer): Verde agua (teal) para un contraste retro hermoso */
-  --primary: #9db7b4;
-  --primary-foreground: #1a0b0e; /* Letras oscuras porque el verde es un tono medio/claro */
-  
-  /* Sombra/Anillo cuando haces clic o navegas con teclado: El naranja intermedio */
-  --ring: #ea8a24;
+  /* Fondos secundarios / hover */
+  --muted: #D5D1C8;
+  --muted-foreground: #6D6B66;
+
+  /* Acentos — Terracota */
+  --accent: #E25933;
+  --accent-foreground: #FFFFFF;
+
+  /* Primario — Terracota (header, botones activos) */
+  --primary: #E25933;
+  --primary-foreground: #FFFFFF;
+
+  /* Secundario — Carbón oscuro (nav bar) */
+  --secondary: #2D2B2A;
+  --secondary-foreground: #FFFFFF;
+
+  /* Ring de foco */
+  --ring: #E25933;
 }
 
 @theme inline {
@@ -43,9 +46,10 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
   --color-ring: var(--ring);
 
-  /* Mantenemos las fuentes de tu proyecto */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

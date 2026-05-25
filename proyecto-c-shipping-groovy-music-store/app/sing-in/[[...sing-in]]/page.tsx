@@ -2,22 +2,24 @@ import { SignIn } from "@clerk/nextjs";
 
 export default function Page() {
   return (
-    // Agregamos bg-[#fff5f7] acá para que el fondo no quede blanco y la tarjeta resalte
-    <div className="flex min-h-screen items-center justify-center bg-[#fff5f7] p-4">
+    // Cambiamos el hex estático por tu clase bg-background (que ahora es tu retro beige)
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <SignIn
         appearance={{
           variables: {
-            colorPrimary: "#ee6969", 
-            colorBackground: "#ffffff", 
-            colorText: "#1a0b0e", 
-            colorDanger: "#af273e", 
+            // Enganchamos las variables de Clerk directamente a tus variables de CSS
+            colorPrimary: "var(--primary)",       // El terracota
+            colorBackground: "var(--card)",       // El fondo del panel
+            colorText: "var(--foreground)",       // El texto oscuro
+            colorDanger: "var(--accent)",         // Usamos tu color de acento para errores
           },
           elements: {
-            card: "shadow-2xl rounded-3xl border border-[#f4c1c1]", 
-            headerTitle: "text-2xl font-bold",
-            headerSubtitle: "text-[#4a2b32]",
-            socialButtonsBlockButton: "hover:bg-[#fff5f7] border-[#f4c1c1]",
-            formFieldInput: "rounded-xl focus:ring-[#ee6969] focus:border-[#ee6969]",
+            // Usamos tus clases dinámicas de Tailwind (border-border, text-muted-foreground, etc.)
+            card: "shadow-2xl rounded-3xl border border-border", 
+            headerTitle: "text-2xl font-bold text-foreground",
+            headerSubtitle: "text-muted-foreground",
+            socialButtonsBlockButton: "hover:bg-muted border-border text-foreground",
+            formFieldInput: "rounded-xl focus:ring-ring focus:border-ring bg-background text-foreground border-border",
           },
         }}
       />
