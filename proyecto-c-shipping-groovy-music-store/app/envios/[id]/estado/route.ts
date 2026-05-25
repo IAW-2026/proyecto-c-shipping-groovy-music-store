@@ -14,7 +14,7 @@ export async function PATCH(
     }
 
 const envio = await prisma.envio.update({
-  where: { id: Number(params.id) },  // 👈
+  where: { id: Number(params.id) },  
   data: { estado },
 });
 
