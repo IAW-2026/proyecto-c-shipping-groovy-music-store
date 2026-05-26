@@ -3,10 +3,10 @@ import { prisma } from "@/lib/prisma";
 
 export async function PATCH(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await context.params;
+    const { id } = await params;
 
     console.log("PATCH /api/envios/[id]/estado - ID:", id);
 
@@ -15,19 +15,11 @@ export async function PATCH(
 
     console.log("Estado recibido:", estado);
 
-    const estadosValidos = [
-      "EN PREPARACIÓN",
-      "EN CAMINO",
-      "ENTREGADO",
-    ];
+    const estadosValidos = ["EN PREPARACIÓN", "EN CAMINO", "ENTREGADO"];
 
     if (!estadosValidos.includes(estado)) {
       console.error("Estado inválido:", estado);
-
-      return NextResponse.json(
-        { error: "Estado inválido" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Estado inválido" }, { status: 400 });
     }
 
     const envioId = Number(id);
@@ -35,12 +27,8 @@ export async function PATCH(
     console.log("Actualizando envío ID:", envioId);
 
     const envio = await prisma.envio.update({
-      where: {
-        id: envioId,
-      },
-      data: {
-        estado,
-      },
+      where: { id: envioId },
+      data: { estado },
     });
 
     console.log("Envío actualizado:", envio);
@@ -49,15 +37,9 @@ export async function PATCH(
 
   } catch (error) {
     console.error("Error al actualizar estado:", error);
-
     return NextResponse.json(
-      {
-        error: "Error interno",
-        details: String(error),
-      },
-      {
-        status: 500,
-      }
+      { error: "Error interno", details: String(error) },
+      { status: 500 }
     );
   }
 }
