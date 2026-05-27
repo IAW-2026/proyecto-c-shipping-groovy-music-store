@@ -8,5 +8,5 @@ export default async function Home() {
     redirect("/shipping");
   }
 
-  redirect("/sing-in");
+  redirect("/sign-in");
 }

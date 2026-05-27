@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { Package, MapPin, Truck, History } from "lucide-react";
+import { normalizarEstado } from "@/lib/utils";
 
 interface Props {
   params: Promise<{
@@ -12,7 +13,7 @@ export default async function EnvioPage({ params }: Props) {
 
   const { id } = await params;
 
-  const envio = await prisma.envio.findUnique({
+  const envioRaw = await prisma.envio.findUnique({
     where: {
       id: Number(id),
     },
@@ -27,9 +28,14 @@ export default async function EnvioPage({ params }: Props) {
     },
   });
 
-  if (!envio) {
+  if (!envioRaw) {
     notFound();
   }
+
+  const envio = {
+    ...envioRaw,
+    estado: normalizarEstado(envioRaw.estado),
+  };
 
   return (
     <main className="min-h-screen p-10">

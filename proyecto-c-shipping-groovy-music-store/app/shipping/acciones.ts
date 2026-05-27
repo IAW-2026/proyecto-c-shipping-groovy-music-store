@@ -16,7 +16,7 @@ export async function eliminarEnvio(id: number) {
     });
 
     // Le avisamos a Next.js que refresque los datos del servidor
-    revalidatePath("/");
+    revalidatePath("/shipping");
     return { success: true };
   } catch (error) {
     console.error("Error al eliminar envío:", error);

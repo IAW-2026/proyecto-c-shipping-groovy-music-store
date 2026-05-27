@@ -15,6 +15,19 @@ export default function StatsEnvios({
   const [enCamino, setEnCamino] = useState(enCaminoInicial);
   const [entregados, setEntregados] = useState(entregadosInicial);
 
+  // Sincronizar estado con props iniciales cuando el servidor revalida los datos (ej: al eliminar un envío)
+  const [prevEnCaminoInicial, setPrevEnCaminoInicial] = useState(enCaminoInicial);
+  if (enCaminoInicial !== prevEnCaminoInicial) {
+    setPrevEnCaminoInicial(enCaminoInicial);
+    setEnCamino(enCaminoInicial);
+  }
+
+  const [prevEntregadosInicial, setPrevEntregadosInicial] = useState(entregadosInicial);
+  if (entregadosInicial !== prevEntregadosInicial) {
+    setPrevEntregadosInicial(entregadosInicial);
+    setEntregados(entregadosInicial);
+  }
+
   useEffect(() => {
     function handleCambio(e: CustomEvent) {
       const { anterior, nuevo } = e.detail;

@@ -4,6 +4,7 @@ import { UserButton } from "@clerk/nextjs";
 import { getCurrentUser } from "@/lib/auth";
 import StatsEnvios from "@/app/componentes/StatsEnvios";
 import PanelFiltroEnvios from "@/app/componentes/PanelFiltrosEnvio";
+import { normalizarEstado } from "@/lib/utils";
 
 export default async function Home() {
   const user = await getCurrentUser();
@@ -14,7 +15,7 @@ export default async function Home() {
 
   const isAdmin = user?.role === "ADMIN";
 
-  const envios = await prisma.envio.findMany({
+  const enviosRaw = await prisma.envio.findMany({
     where: isAdmin ? {} : { empresaId: user?.empresaId },
     include: {
       direccion: true,
@@ -25,6 +26,11 @@ export default async function Home() {
       id: "desc",
     }
   });
+
+  const envios = enviosRaw.map((envio) => ({
+    ...envio,
+    estado: normalizarEstado(envio.estado),
+  }));
 
   const entregados = envios.filter((e) => e.estado === "ENTREGADO").length;
   const enCamino = envios.filter((e) => e.estado === "EN CAMINO").length;

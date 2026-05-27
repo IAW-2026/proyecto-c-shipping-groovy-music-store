@@ -106,7 +106,7 @@ async function main() {
       seller_id: 10,
       buyer_id: 200,
       direccion_id: direccion1.id,
-      estado: "EN_CAMINO",
+      estado: "EN CAMINO",
       empresaId: fastShip.id,
     },
   });
@@ -128,7 +128,7 @@ async function main() {
       seller_id: 12,
       buyer_id: 202,
       direccion_id: direccion3.id,
-      estado: "EN_PREPARACION",
+      estado: "EN PREPARACIÓN",
       empresaId: urban.id,
     },
   });
@@ -139,7 +139,7 @@ async function main() {
       seller_id: 13,
       buyer_id: 203,
       direccion_id: direccion4.id,
-      estado: "EN_CAMINO",
+      estado: "EN CAMINO",
       empresaId: fastShip.id,
     },
   });
