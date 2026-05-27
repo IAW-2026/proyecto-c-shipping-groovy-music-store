@@ -3,8 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { UserButton } from "@clerk/nextjs";
 import { getCurrentUser } from "@/lib/auth";
 import StatsEnvios from "@/app/componentes/StatsEnvios";
-import PanelFiltroEnvios from "@/app/componentes/PanelFiltrosEnvio"; // ¡Importado!
-import { Truck, Search } from "lucide-react";
+import PanelFiltroEnvios from "@/app/componentes/PanelFiltrosEnvio";
 
 export default async function Home() {
   const user = await getCurrentUser();
@@ -15,7 +14,6 @@ export default async function Home() {
 
   const isAdmin = user?.role === "ADMIN";
 
-  // Buscamos los datos limpios de la BD
   const envios = await prisma.envio.findMany({
     where: isAdmin ? {} : { empresaId: user?.empresaId },
     include: {
@@ -45,10 +43,6 @@ export default async function Home() {
         </div>
 
         <div className="flex items-center gap-5">
-          <Search
-            size={20}
-            className="text-primary-foreground hover:text-primary-foreground/80 cursor-pointer transition-colors"
-          />
           <div className="flex items-center gap-3 pl-4 border-l border-primary-foreground/30">
             <div className="hidden sm:flex items-center text-xs font-bold bg-primary-foreground/20 px-3 py-1 rounded-full uppercase tracking-wider">
               {isAdmin ? "Admin" : "Operador"}
@@ -64,9 +58,9 @@ export default async function Home() {
         </div>
       </header>
 
-      {/* Contenido Principal */}
+      {/* ── CONTENIDO PRINCIPAL ── */}
       <div className="max-w-[1400px] mx-auto px-6 md:px-10 pt-12">
-        {/* ── TÍTULO ── */}
+        {/* TÍTULO */}
         <div className="mb-10">
           <h2 className="text-4xl md:text-5xl font-medium text-foreground mb-3">
             Panel Operativo
@@ -77,35 +71,16 @@ export default async function Home() {
           <div className="w-16 h-1 bg-primary mt-6" />
         </div>
 
-        {/* ── STATS Y BUSCADOR ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-10">
-          <div className="lg:col-span-8">
-            <StatsEnvios
-              totalInicial={envios.length}
-              enCaminoInicial={enCamino}
-              entregadosInicial={entregados}
-            />
-          </div>
-
-          <div className="lg:col-span-4 bg-card text-card-foreground rounded-2xl shadow-sm p-6 border border-border flex flex-col justify-center">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4 flex items-center gap-2">
-              <Search size={16} className="text-primary" />
-              Rastrear Orden
-            </h3>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Ingresar ID de envío..."
-                className="w-full bg-muted/40 border border-border text-foreground placeholder:text-muted-foreground rounded-xl py-3 pl-4 pr-10 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-medium text-sm"
-              />
-              <button className="absolute right-3 top-1/2 -translate-y-1/2 text-primary hover:text-accent transition-colors">
-                <Truck size={18} />
-              </button>
-            </div>
-          </div>
+        {/* STATS (Ocupando todo el ancho ahora) */}
+        <div className="mb-10">
+          <StatsEnvios
+            totalInicial={envios.length}
+            enCaminoInicial={enCamino}
+            entregadosInicial={entregados}
+          />
         </div>
 
-        {/* ── COMPONENTE DE FILTRADO INTERACTIVO CON SU BOTONERA ── */}
+        {/* PANEL CON BUSCADOR EN TIEMPO REAL INTEGRADO */}
         <PanelFiltroEnvios enviosIniciales={envios} />
       </div>
     </main>

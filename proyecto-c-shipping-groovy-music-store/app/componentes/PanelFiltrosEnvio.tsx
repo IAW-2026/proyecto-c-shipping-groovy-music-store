@@ -1,209 +1,69 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState } from "react";
 import EnvioCard from "@/app/componentes/EnvioCard";
-// Importamos iconos extra para el modal y el botón
-import { Trash2, Truck, AlertTriangle, X } from "lucide-react"; 
-import { eliminarEnvio } from "@/app/shipping/acciones";
-
-type FiltroType = "todos" | "en-camino" | "entregados";
+import { Search } from "lucide-react";
 
 export default function PanelFiltroEnvios({ enviosIniciales }: { enviosIniciales: any[] }) {
-  const [filtro, setFiltro] = useState<FiltroType>("todos");
-  const [listaEnvios, setListaEnvios] = useState(enviosIniciales);
-  const [isPending, startTransition] = useTransition();
+  const [filtroEstado, setFiltroEstado] = useState("TODOS");
+  const [busquedaId, setBusquedaId] = useState(""); 
 
-  // ── NUEVOS ESTADOS PARA EL MODAL DE CONFIRMACIÓN ──
-  const [showModal, setShowModal] = useState(false);
-  const [selectedEnvioId, setSelectedEnvioId] = useState<number | null>(null);
+  const enviosFiltrados = enviosIniciales.filter((envio) => {
 
-  useEffect(() => {
-    setListaEnvios(enviosIniciales);
-  }, [enviosIniciales]);
+    const coincideEstado = filtroEstado === "TODOS" || envio.estado === filtroEstado;
+    
 
-  // Al presionar el tacho, NO borramos, solo abrimos el modal y guardamos el ID
-  const handleRequestEliminar = (e: React.MouseEvent, id: number) => {
-    e.stopPropagation(); // Evitamos que abra el historial de la card
-    e.preventDefault();
-    setSelectedEnvioId(id);
-    setShowModal(true); // Abrimos el cartel lindo
-  };
+    const coincideBusqueda = envio.id.toString().includes(busquedaId);
 
-  // Esta función se ejecuta cuando el usuario confirma en el modal
-  const handleConfirmEliminar = () => {
-    if (!selectedEnvioId) return;
-
-    startTransition(async () => {
-      const res = await eliminarEnvio(selectedEnvioId);
-      if (res.success) {
-        // Actualización optimista: lo sacamos de la pantalla
-        setListaEnvios((prev) => prev.filter((envio) => envio.id !== selectedEnvioId));
-        setShowModal(false); // Cerramos modal
-        setSelectedEnvioId(null);
-      } else {
-        alert(res.error);
-        setShowModal(false);
-      }
-    });
-  };
-
-  // Función para cerrar el modal sin hacer nada
-  const handleCancelEliminar = () => {
-    setShowModal(false);
-    setSelectedEnvioId(null);
-  };
-
-  const enviosFiltrados = listaEnvios.filter((envio) => {
-    if (filtro === "entregados") return envio.estado === "ENTREGADO";
-    if (filtro === "en-camino") return envio.estado === "EN CAMINO";
-    return true;
+    // Solo se muestra la tarjeta si cumple con AMBAS cosas
+    return coincideEstado && coincideBusqueda;
   });
 
   return (
-    <>
-      {/* ── 1. EL CARTEL "MÁS LINDO" (MODAL DE CONFIRMACIÓN) ── */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[999] p-4 backdrop-blur-sm animate-in fade-in duration-300">
-          {/* Contenedor del Modal */}
-          <div className="bg-card text-card-foreground p-8 rounded-3xl shadow-2xl border border-border w-full max-w-lg relative scale-in-center animate-in zoom-in-95 duration-200">
-            
-            {/* Botón X para cerrar arriba a la derecha */}
-            <button
-                onClick={handleCancelEliminar}
-                className="absolute top-5 right-5 text-muted-foreground hover:text-foreground rounded-full p-1 transition-colors"
-            >
-                <X size={20} />
-            </button>
-
-            {/* Cabecera del Modal con icono de advertencia */}
-            <div className="flex items-center gap-6 mb-6">
-              <div className="bg-red-100 text-red-600 p-4 rounded-full border border-red-200">
-                <AlertTriangle size={36} strokeWidth={1.5}/>
-              </div>
-              <div>
-                <h4 className="text-2xl font-semibold text-foreground mb-1">
-                  Eliminar Registro
-                </h4>
-                <p className="text-sm text-red-600 font-medium">
-                  Atención: Esta acción no se puede deshacer.
-                </p>
-              </div>
-            </div>
-
-            {/* Cuerpo del Modal */}
-            <p className="text-muted-foreground mb-10 text-base leading-relaxed">
-              ¿Estás seguro de que querés eliminar permanentemente este registro de envío entregado? Se borrará todo el historial de eventos asociado a este paquete.
-            </p>
-
-            {/* Botones de Acción del Modal */}
-            <div className="flex gap-4 items-center justify-end">
-              <button
-                onClick={handleCancelEliminar}
-                className="px-6 py-2.5 rounded-xl text-sm font-semibold bg-muted text-muted-foreground hover:bg-muted/80 transition-colors cursor-pointer"
-              >
-                No, cancelar
-              </button>
-              <button
-                onClick={handleConfirmEliminar}
-                disabled={isPending}
-                className={`px-6 py-2.5 rounded-xl text-sm font-semibold bg-red-600 text-white hover:bg-red-700 shadow-md transition-all cursor-pointer flex items-center gap-2 ${isPending ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
-              >
-                {isPending ? (
-                    <>
-                        <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"></div>
-                        Eliminando...
-                    </>
-                ) : (
-                    <>
-                        <Trash2 size={16} />
-                        Sí, eliminar registro
-                    </>
-                )}
-              </button>
-            </div>
+    <div className="space-y-6">
+      {/* ── CONTROLES: BUSCADOR Y BOTONES EN LA MISMA CAJA ── */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-card p-4 rounded-2xl border border-border shadow-sm">
+        
+        {/* BUSCADOR EN TIEMPO REAL */}
+        <div className="relative w-full lg:w-1/3">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search size={18} className="text-muted-foreground" />
           </div>
+          <input
+            type="text"
+            placeholder="Buscar por ID numérico..."
+            value={busquedaId}
+            onChange={(e) => setBusquedaId(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 bg-background border border-border rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+          />
         </div>
-      )}
 
+        {/* BOTONERA DE FILTROS */}
+        <div className="flex gap-2 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0">
+          <button onClick={() => setFiltroEstado("TODOS")} className={`px-4 py-2 rounded-full font-semibold text-sm whitespace-nowrap transition-all ${filtroEstado === "TODOS" ? "bg-primary text-primary-foreground shadow-md" : "bg-background text-muted-foreground hover:bg-muted border border-border"}`}>Todos</button>
+          <button onClick={() => setFiltroEstado("EN PREPARACIÓN")} className={`px-4 py-2 rounded-full font-semibold text-sm whitespace-nowrap transition-all ${filtroEstado === "EN PREPARACIÓN" ? "bg-primary text-primary-foreground shadow-md" : "bg-background text-muted-foreground hover:bg-muted border border-border"}`}>En Preparación</button>
+          <button onClick={() => setFiltroEstado("EN CAMINO")} className={`px-4 py-2 rounded-full font-semibold text-sm whitespace-nowrap transition-all ${filtroEstado === "EN CAMINO" ? "bg-primary text-primary-foreground shadow-md" : "bg-background text-muted-foreground hover:bg-muted border border-border"}`}>En Camino</button>
+          <button onClick={() => setFiltroEstado("ENTREGADO")} className={`px-4 py-2 rounded-full font-semibold text-sm whitespace-nowrap transition-all ${filtroEstado === "ENTREGADO" ? "bg-primary text-primary-foreground shadow-md" : "bg-background text-muted-foreground hover:bg-muted border border-border"}`}>Entregados</button>
+        </div>
+      </div>
 
-      {/* ── 2. BARRA DE BOTONES DE FILTRO ── */}
-      <nav className="bg-secondary text-secondary-foreground px-6 md:px-10 py-3 flex items-center gap-6 overflow-x-auto shadow-sm mb-10 rounded-2xl border border-border/50">
-        <button
-          onClick={() => setFiltro("todos")}
-          className={`text-xs font-bold uppercase tracking-widest px-6 py-2 rounded-full whitespace-nowrap transition-all cursor-pointer ${
-            filtro === "todos"
-              ? "bg-primary text-primary-foreground shadow-md scale-105"
-              : "text-secondary-foreground/60 hover:text-secondary-foreground"
-          }`}
-        >
-          Todos los envíos
-        </button>
-        <button
-          onClick={() => setFiltro("en-camino")}
-          className={`text-xs font-bold uppercase tracking-widest px-6 py-2 rounded-full whitespace-nowrap transition-all cursor-pointer ${
-            filtro === "en-camino"
-              ? "bg-primary text-primary-foreground shadow-md scale-105"
-              : "text-secondary-foreground/60 hover:text-secondary-foreground"
-          }`}
-        >
-          En Camino
-        </button>
-        <button
-          onClick={() => setFiltro("entregados")}
-          className={`text-xs font-bold uppercase tracking-widest px-6 py-2 rounded-full whitespace-nowrap transition-all cursor-pointer ${
-            filtro === "entregados"
-              ? "bg-primary text-primary-foreground shadow-md scale-105"
-              : "text-secondary-foreground/60 hover:text-secondary-foreground"
-          }`}
-        >
-          Entregados
-        </button>
-      </nav>
-
-      {/* ── 3. LISTADO FILTRADO INTERACTIVO ── */}
-      <div className="space-y-4">
-        {enviosFiltrados.map((envio, index) => (
-          <div
-            key={envio.id}
-            className="relative group" // Agregamos 'group' para efectos hover en el botón
-            style={{ zIndex: enviosFiltrados.length - index }}
-          >
-            {/* EL BOTÓN DE BORRAR REDISEÑADO Y MEJOR PUESTO */}
-            {filtro === "entregados" && envio.estado === "ENTREGADO" && (
-              <div className="absolute top-4 right-4 z-40 opacity-0 group-hover:opacity-100 transition-opacity duration-300"> 
-                  <button
-                    onClick={(e) => handleRequestEliminar(e, envio.id)}
-                    disabled={isPending}
-                    // Nuevo estilo circular, rojo pastel, con shadow y animación hover
-                    className={`p-3 bg-red-100/70 text-red-600 border border-red-200 rounded-full transition-all shadow-md cursor-pointer hover:bg-red-100 hover:scale-110 active:scale-95 border border-red-200 ${
-                      isPending ? "opacity-50 cursor-not-allowed" : ""
-                    }`}
-                    title="Eliminar Registro permanentemente"
-                  >
-                    <Trash2 size={18} strokeWidth={2.5} />
-                  </button>
-              </div>
-            )}
-
-            <EnvioCard envio={envio} />
+      {/* ── LISTA DE TARJETAS DE ENVÍO ── */}
+     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {enviosFiltrados.length > 0 ? (
+          enviosFiltrados.map((envio) => (
+            <EnvioCard key={envio.id} envio={envio} />
+          ))
+        ) : (
+          /* MENSAJE SI NO HAY COINCIDENCIAS (El buscador desaparece las tarjetas y muestra esto) */
+          <div className="col-span-full py-16 flex flex-col items-center justify-center text-center bg-card rounded-2xl border border-dashed border-border">
+            <Search size={48} className="text-muted-foreground/30 mb-4" />
+            <h3 className="text-xl font-bold text-foreground mb-2">No hay resultados</h3>
+            <p className="text-muted-foreground">
+              No se encontraron envíos que coincidan con el ID <span className="font-bold text-primary">"{busquedaId}"</span>.
+            </p>
           </div>
-        ))}
-
-        {/* ... handling length 0 ... */}
-        {enviosFiltrados.length === 0 && (
-            <div className="bg-card text-card-foreground rounded-2xl shadow-sm border border-border p-16 text-center mt-8">
-                <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6 border border-border/50">
-                    <Truck className="w-10 h-10 text-primary" />
-                </div>
-                <h3 className="text-2xl font-medium text-foreground mb-2">
-                    No hay envíos
-                </h3>
-                <p className="text-muted-foreground max-w-md mx-auto text-sm">
-                    No encontramos registros de paquetes para la categoría seleccionada en este momento.
-                </p>
-            </div>
         )}
       </div>
-    </>
+    </div>
   );
 }

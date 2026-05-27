@@ -132,7 +132,7 @@ export default function EnvioCard({ envio }: { envio: any }) {
               </button>
 
               {mostrarDropdown && (
-                // CORRECCIÓN 2: Cambiamos z-10 a z-50 para extra seguridad
+            
                 <div className="absolute right-0 top-12 z-50 bg-card border border-border rounded-2xl shadow-lg overflow-hidden w-full min-w-[200px]">
                   {ESTADOS.map((estado) => (
                     <button
