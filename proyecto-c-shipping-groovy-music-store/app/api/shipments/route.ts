@@ -76,21 +76,21 @@ export async function POST(req: Request) {
     );
   }
 
-  const envio = await prisma.envio.create({
-    data: {
-      order_id,
-      seller_id: parseInt(seller_id),
-      buyer_id:  parseInt(buyer_id),
-      estado:    "En Preparación",
-      empresaId: empresa.id,
-      direccion_id: direccion.id,
-      eventos: {
-        create: {
-          descripcion: "Envío creado. Esperando preparación del vendedor.",
-        },
+const envio = await prisma.envio.create({
+  data: {
+    order_id,
+    seller_id,
+    buyer_id,
+    estado: "En Preparación",
+    empresaId: empresa.id,
+    direccion_id: direccion.id,
+    eventos: {
+      create: {
+        descripcion: "Envío creado. Esperando preparación del vendedor.",
       },
     },
-  });
+  },
+});
 
   const codigoSeguimiento = `TRK-${envio.id.toString().padStart(6, "0")}`;
 

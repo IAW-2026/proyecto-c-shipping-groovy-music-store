@@ -103,8 +103,8 @@ async function main() {
   const envio1 = await prisma.envio.create({
     data: {
       order_id: "ORD-1001",
-      seller_id: 10,
-      buyer_id: 200,
+      seller_id: "10",
+      buyer_id: "200",
       direccion_id: direccion1.id,
       estado: "EN CAMINO",
       empresaId: fastShip.id,
@@ -114,8 +114,8 @@ async function main() {
   const envio2 = await prisma.envio.create({
     data: {
       order_id: "ORD-1002",
-      seller_id: 11,
-      buyer_id: 201,
+      seller_id: "11",
+      buyer_id: "201",
       direccion_id: direccion2.id,
       estado: "ENTREGADO",
       empresaId: groovy.id,
@@ -125,8 +125,8 @@ async function main() {
   const envio3 = await prisma.envio.create({
     data: {
       order_id: "ORD-1003",
-      seller_id: 12,
-      buyer_id: 202,
+      seller_id: "12",
+      buyer_id: "202",
       direccion_id: direccion3.id,
       estado: "EN PREPARACIÓN",
       empresaId: urban.id,
@@ -136,8 +136,8 @@ async function main() {
   const envio4 = await prisma.envio.create({
     data: {
       order_id: "ORD-1004",
-      seller_id: 13,
-      buyer_id: 203,
+      seller_id: "13",
+      buyer_id: "203",
       direccion_id: direccion4.id,
       estado: "EN CAMINO",
       empresaId: fastShip.id,
