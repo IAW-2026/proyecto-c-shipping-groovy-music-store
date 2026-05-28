@@ -50,8 +50,8 @@ model Direccion {
 model Envio {
   id           Int    @id @default(autoincrement())
   order_id     String @unique
-  seller_id    Int
-  buyer_id     Int
+  seller_id    String
+  buyer_id     String
   direccion_id Int
   estado       String
 

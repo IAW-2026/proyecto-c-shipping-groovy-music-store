@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { Package, MapPin, History, ChevronDown, Check } from "lucide-react";
 
-// 👇 IMPORTAMOS TU COMPONENTE (Ajustá la ruta si lo tenés en otra carpeta)
 import BotonEliminar from "./BotonEliminar"; 
 
 const ESTADOS = ["EN PREPARACIÓN", "EN CAMINO", "ENTREGADO"] as const;

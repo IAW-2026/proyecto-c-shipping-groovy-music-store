@@ -15,7 +15,6 @@ export default function PanelFiltroEnvios({
   // Estado "vivo"
   const [envios, setEnvios] = useState<Envio[]>(enviosIniciales);
 
-  // 🔥 Esto sincroniza cuando router.refresh()
   // trae nuevos datos desde el servidor
   useEffect(() => {
     setEnvios(enviosIniciales);
