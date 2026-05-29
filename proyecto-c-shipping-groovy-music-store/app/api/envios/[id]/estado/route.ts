@@ -11,7 +11,7 @@ export async function GET(
 
     const envio = await prisma.envio.findUnique({
       where: {
-        id: Number(id),
+        id: id,
       },
     });
 
@@ -69,7 +69,7 @@ export async function PATCH(
       );
     }
 
-    const envioId = Number(id);
+    const envioId = id;
 
     console.log("Actualizando envío ID:", envioId);
 

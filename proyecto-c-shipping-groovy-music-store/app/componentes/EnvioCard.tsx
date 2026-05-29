@@ -1,317 +1,198 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { Package, MapPin, History, ChevronDown, Check } from "lucide-react";
+import { Package, MapPin, History, ChevronDown, Check, Truck } from "lucide-react";
 
-import BotonEliminar from "./BotonEliminar"; 
-
+// Los estados válidos de tu sistema
 const ESTADOS = ["EN PREPARACIÓN", "EN CAMINO", "ENTREGADO"] as const;
 
-export interface Evento {
-  id: number;
-  envio_id: number;
-  descripcion: string;
-  timestamp: string | Date;
-}
-
-export interface Envio {
-  id: number;
-  order_id: string;
-  seller_id: string;
-  buyer_id: string;
-  direccion_id: number;
-  estado: string;
-  empresaId: number;
-  empresa?: {
-    id: number;
-    nombre: string;
-  } | null;
-  direccion?: {
-    id: number;
-    calle: string;
-    ciudad: string;
-    provincia: string;
-    cod_postal: string;
-    pais: string;
-  } | null;
-  eventos?: Evento[];
-}
-
-function getEstadoStyles(estado: string) {
-  switch (estado) {
-    case "EN PREPARACIÓN":
-      return "bg-muted text-muted-foreground";
-    case "EN CAMINO":
-      return "bg-primary/15 text-primary";
-    case "ENTREGADO":
-      return "bg-secondary/15 text-secondary-foreground";
-    default:
-      return "bg-muted text-muted-foreground";
-  }
-}
-
-// Generador de ID simulado fuera del render para evitar advertencias de impureza
-function generarIdSimulado() {
-  return Date.now();
-}
-
-export default function EnvioCard({ 
-  envio,
-  onEstadoCambiado 
-}: { 
-  envio: Envio;
-  onEstadoCambiado?: (id: number, nuevoEstado: string) => void;
-}) {
+export default function EnvioCard({ envio }: { envio: any }) {
+  // Estados visuales e interactivos
   const [mostrarHistorial, setMostrarHistorial] = useState(false);
-  const [mostrarDropdown, setMostrarDropdown] = useState(false);
-  const [cargando, setCargando] = useState(false);
   const [estadoActual, setEstadoActual] = useState(envio.estado);
-  
-  const [eventosActuales, setEventosActuales] = useState<Evento[]>(envio.eventos || []);
+  const [eventosActuales, setEventosActuales] = useState(envio.eventos || []);
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  async function handleCambiarEstado(nuevoEstado: (typeof ESTADOS)[number]) {
+  // Calcula el porcentaje de la barra de progreso
+  const indiceEstado = ESTADOS.indexOf(estadoActual);
+  const porcentajeBarra =
+    indiceEstado === 0 ? "0%" : indiceEstado === 1 ? "50%" : "100%";
+
+  // Función para cambiar el estado (Actualización optimista)
+  const handleCambiarEstado = async (e: React.MouseEvent, nuevoEstado: string) => {
+    e.stopPropagation();
+    if (nuevoEstado === estadoActual || isUpdating) return;
+
+    setIsUpdating(true);
     const estadoAnterior = estadoActual;
-    const eventosAnteriores = eventosActuales;
+    const eventosAnteriores = [...eventosActuales];
 
+    // 1. Actualización visual instantánea (Optimista)
     setEstadoActual(nuevoEstado);
-    
-    const nuevoEventoSimulado: Evento = {
-      id: generarIdSimulado(), 
-      envio_id: envio.id,
-      descripcion: nuevoEstado, 
-      timestamp: new Date()
+    const nuevoEvento = {
+      id: `temp-${Date.now()}`,
+      descripcion: nuevoEstado,
+      timestamp: new Date().toISOString(),
     };
-    
-    setEventosActuales([nuevoEventoSimulado, ...eventosAnteriores]);
-    
-    setMostrarDropdown(false);
-    setCargando(true);
+    setEventosActuales([nuevoEvento, ...eventosActuales]);
 
     try {
+      // 2. Llamada a tu API o Server Action (Ajustá la ruta según tu proyecto)
+      // Esto asume que tenés un endpoint, si usás Server Actions, cambialo por tu función
       const res = await fetch(`/api/envios/${envio.id}/estado`, {
-        method: "PATCH",
+        method: "PATCH", // o POST
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ estado: nuevoEstado }),
       });
 
       if (!res.ok) {
-        setEstadoActual(estadoAnterior);
-        setEventosActuales(eventosAnteriores);
-        alert("Error al cambiar estado");
-        return;
+        throw new Error("Falló la actualización en la BD");
       }
-
-      window.dispatchEvent(
-        new CustomEvent("estadoCambiado", {
-          detail: { anterior: estadoAnterior, nuevo: nuevoEstado },
-        })
-      );
-
-      if (onEstadoCambiado) {
-        onEstadoCambiado(envio.id, nuevoEstado);
-      }
-      
-    } catch {
+    } catch (error) {
+      // 3. Si falla, revertimos a como estaba antes y avisamos
+      console.error(error);
+      alert("Hubo un error al actualizar el estado. Volviendo al estado anterior.");
       setEstadoActual(estadoAnterior);
       setEventosActuales(eventosAnteriores);
-      alert("Error al cambiar estado");
     } finally {
-      setCargando(false);
+      setIsUpdating(false);
     }
-  }
-
-  const indiceActual = ESTADOS.indexOf(estadoActual as typeof ESTADOS[number]);
-  const porcentaje = (indiceActual / (ESTADOS.length - 1)) * 100;
+  };
 
   return (
-    /* ── ENVOLTORIO RELATIVO PRINCIPAL ── */
-    /* Lo ponemos acá para que el botón pueda flotar arriba de la tarjeta pero SIN estar atrapado por el "transform" del Link */
-    <div className="relative block group">
+    <div className="bg-card text-card-foreground rounded-2xl shadow-sm border border-border p-6 transition-all hover:shadow-md relative overflow-hidden">
       
-      {/* ── BOTÓN ELIMINAR FLOTANTE (FUERA DEL LINK) ── */}
-      {estadoActual === "ENTREGADO" && (
-        <div className="absolute top-6 right-6 md:top-7 md:right-7 z-50">
-          <BotonEliminar envioId={envio.id} />
+      {/* ── ENCABEZADO DE LA TARJETA ── */}
+      <div className="flex justify-between items-start mb-6">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <Package className="text-primary" size={20} />
+            <h3 className="font-bold text-lg">Orden: {envio.order_id.substring(0, 8)}...</h3>
+          </div>
+          <p className="text-xs text-muted-foreground uppercase tracking-wider font-mono">
+            ID: {envio.id}
+          </p>
         </div>
-      )}
 
-      {/* ── TARJETA / LINK ── */}
-      <Link
-        href={`/envios/${envio.id}`}
-        className="block relative bg-card text-card-foreground rounded-3xl border border-border shadow-md hover:shadow-xl hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-300"
-      >
-        <div className="p-8 md:p-10">
-          <div className="grid md:grid-cols-3 gap-8 items-center">
-
-            {/* ── IZQUIERDA ── */}
-            <div>
-              <div className="flex items-center gap-2 mb-4 flex-wrap">
-                <span className="text-lg font-black text-foreground">
-                  {envio.order_id}
-                </span>
-                <span
-                  className={`px-3 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide ${getEstadoStyles(estadoActual)}`}
-                >
-                  {estadoActual}
-                </span>
-              </div>
-
-              <div className="flex items-start gap-2">
-                <Package size={16} className="text-muted-foreground mt-0.5 shrink-0" />
-                <div>
-                  <p className="text-xs uppercase font-bold tracking-wider text-muted-foreground">
-                    Operador logístico
-                  </p>
-                  <p className="font-semibold text-foreground text-sm mt-0.5">
-                    {envio.empresa?.nombre || "Empresa no asignada"}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* ── CENTRO ── */}
-            <div className="flex items-start gap-2">
-              <MapPin size={16} className="text-primary mt-0.5 shrink-0" />
-              <div>
-                <p className="text-xs uppercase font-bold tracking-wider text-primary">
-                  Destino
-                </p>
-                <p className="font-semibold text-foreground mt-0.5">
-                  {envio.direccion?.calle}
-                </p>
-                <p className="text-muted-foreground text-sm">
-                  {envio.direccion?.ciudad}, {envio.direccion?.provincia}
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  CP {envio.direccion?.cod_postal}
-                </p>
-              </div>
-            </div>
-
-            {/* ── DERECHA ── */}
-            <div
-              className={`flex flex-col gap-2 md:items-end relative transition-all duration-300 ${
-                estadoActual === "ENTREGADO" ? "md:pt-12" : ""
-              }`}
-              onClick={(e) => e.preventDefault()}
+        {/* Botones rápidos para cambiar de estado */}
+        <div className="flex gap-2 relative z-20">
+          {ESTADOS.map((estado) => (
+            <button
+              key={estado}
+              onClick={(e) => handleCambiarEstado(e, estado)}
+              disabled={isUpdating}
+              className={`text-[10px] sm:text-xs font-bold uppercase px-3 py-1.5 rounded-full transition-all border ${
+                estadoActual === estado
+                  ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                  : "bg-transparent text-muted-foreground border-border hover:border-primary/50 hover:text-foreground"
+              } ${isUpdating ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
             >
-              <div className="relative w-full md:w-auto">
-                <button
-                  onClick={() => setMostrarDropdown(!mostrarDropdown)}
-                  disabled={cargando}
-                  className="bg-primary hover:bg-accent disabled:opacity-60 text-primary-foreground rounded-xl px-5 py-2.5 text-sm font-bold uppercase tracking-wider shadow-sm transition-colors flex items-center justify-center gap-2 w-full"
-                >
-                  {cargando ? "Actualizando..." : "Cambiar estado"}
-                  <ChevronDown
-                    size={14}
-                    className={`transition-transform duration-200 ${mostrarDropdown ? "rotate-180" : ""}`}
-                  />
-                </button>
+              {estado}
+            </button>
+          ))}
+        </div>
+      </div>
 
-                {mostrarDropdown && (
-                  <div className="absolute right-0 top-12 z-50 bg-card border border-border rounded-2xl shadow-lg overflow-hidden w-full min-w-[200px]">
-                    {ESTADOS.map((estado) => (
-                      <button
-                        key={estado}
-                        onClick={() => handleCambiarEstado(estado)}
-                        disabled={estadoActual === estado}
-                        className="w-full text-left px-4 py-3 text-sm font-medium hover:bg-muted/40 transition-colors disabled:opacity-40 disabled:cursor-default"
-                      >
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase ${getEstadoStyles(estado)}`}>
-                          {estado}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+      {/* ── LA BARRA DE PROGRESO ── */}
+      <div className="mb-8 mt-4 px-2">
+        <div className="relative h-2 w-full bg-muted rounded-full overflow-visible">
+          {/* Línea que se llena */}
+          <div
+            className="absolute top-0 left-0 h-full bg-primary rounded-full transition-all duration-700 ease-out"
+            style={{ width: porcentajeBarra }}
+          ></div>
 
-              <button
-                onClick={() => setMostrarHistorial(!mostrarHistorial)}
-                className="border border-border bg-muted/30 hover:bg-muted/60 rounded-xl px-5 py-2.5 text-muted-foreground text-sm font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2 w-full md:w-auto"
-              >
-                {mostrarHistorial ? "Ocultar historial" : "Ver historial"}
-                <History
-                  size={15}
-                  className={`transition-transform duration-300 ${mostrarHistorial ? "rotate-180" : ""}`}
-                />
-              </button>
-            </div>
-
+          {/* Puntos (Nodos) de la barra */}
+          <div className="absolute top-1/2 -translate-y-1/2 left-0 w-4 h-4 bg-background border-2 border-primary rounded-full z-10"></div>
+          <div className="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 w-4 h-4 bg-background border-2 border-primary rounded-full z-10"></div>
+          <div className="absolute top-1/2 -translate-y-1/2 right-0 w-4 h-4 bg-background border-2 border-primary rounded-full z-10 flex items-center justify-center">
+            {estadoActual === "ENTREGADO" && <Check size={10} className="text-primary" />}
           </div>
         </div>
+        <div className="flex justify-between text-[10px] font-bold uppercase text-muted-foreground mt-3">
+          <span className={indiceEstado >= 0 ? "text-primary" : ""}>Preparación</span>
+          <span className={indiceEstado >= 1 ? "text-primary" : ""}>En Camino</span>
+          <span className={indiceEstado === 2 ? "text-primary" : ""}>Entregado</span>
+        </div>
+      </div>
 
-        {/* ── HISTORIAL ── */}
-        <div
-          className={`overflow-hidden transition-all duration-500 ease-in-out ${
-            mostrarHistorial ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0"
+      {/* ── DATOS DE DIRECCIÓN Y EMPRESA ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <div className="flex items-start gap-3 p-3 rounded-xl bg-secondary/30 border border-border/50">
+          <MapPin className="text-muted-foreground mt-0.5" size={18} />
+          <div>
+            <p className="text-xs text-muted-foreground font-semibold uppercase mb-0.5">Destino</p>
+            <p className="text-sm font-medium">{envio.direccion?.calle}</p>
+            <p className="text-xs text-muted-foreground">
+              {envio.direccion?.ciudad}, {envio.direccion?.provincia}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-start gap-3 p-3 rounded-xl bg-secondary/30 border border-border/50">
+          <Truck className="text-muted-foreground mt-0.5" size={18} />
+          <div>
+            <p className="text-xs text-muted-foreground font-semibold uppercase mb-0.5">Operador</p>
+            <p className="text-sm font-medium">{envio.empresa?.nombre}</p>
+            <p className="text-xs text-muted-foreground">Asignado al envío</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── BOTÓN PARA DESPLEGAR HISTORIAL ── */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setMostrarHistorial(!mostrarHistorial);
+        }}
+        className="w-full flex items-center justify-between py-3 px-4 bg-secondary/50 hover:bg-secondary rounded-xl transition-colors border border-border/50 cursor-pointer relative z-20"
+      >
+        <div className="flex items-center gap-2">
+          <History size={16} className="text-primary" />
+          <span className="text-sm font-semibold">Historial de movimientos</span>
+        </div>
+        <ChevronDown
+          size={16}
+          className={`transition-transform duration-300 ${
+            mostrarHistorial ? "rotate-180" : ""
           }`}
-          onClick={(e) => e.preventDefault()}
-        >
-          <div className="px-6 pb-6 border-t border-border pt-5 bg-muted/20 rounded-b-2xl">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-8 flex items-center gap-2">
-              <Package size={14} />
-              Progreso del envío
-            </h3>
+        />
+      </button>
 
-            <div className="relative mb-14 px-4">
-              <div className="absolute top-1/2 left-0 w-full h-1 bg-border -translate-y-1/2 rounded-full"></div>
-              <div 
-                className="absolute top-1/2 left-0 h-1 bg-primary -translate-y-1/2 rounded-full transition-all duration-700 ease-out"
-                style={{ width: `${porcentaje}%` }}
+      {/* ── HISTORIAL DESPLEGABLE ── */}
+      <div
+        className={`transition-all duration-300 ease-in-out overflow-hidden ${
+          mostrarHistorial ? "max-h-96 opacity-100 mt-4" : "max-h-0 opacity-0"
+        }`}
+      >
+        <div className="border-l-2 border-border ml-6 space-y-4 py-2 relative z-20">
+          {eventosActuales.map((evento: any, index: number) => (
+            <div key={evento.id} className="relative pl-6">
+              {/* Puntito en la línea temporal */}
+              <div
+                className={`absolute w-3 h-3 rounded-full -left-[7px] top-1.5 ${
+                  index === 0
+                    ? "bg-primary animate-pulse" // El último evento titila
+                    : "bg-muted-foreground"
+                }`}
               ></div>
-
-              <div className="relative flex justify-between z-10">
-                {ESTADOS.map((estado, index) => {
-                  const isCompleted = indiceActual >= index;
-                  const isCurrent = indiceActual === index;
-                  
-                  return (
-                    <div key={estado} className="flex flex-col items-center">
-                      <div 
-                        className={`w-7 h-7 rounded-full border-4 flex items-center justify-center transition-all duration-700 ${
-                          isCompleted ? "bg-primary border-card" : "bg-muted border-card"
-                        } ${isCurrent ? "ring-4 ring-primary/20 scale-125" : ""}`}
-                      >
-                        {isCompleted && <Check size={14} className="text-primary-foreground stroke-[3]" />}
-                      </div>
-                      <span className={`absolute top-10 text-[10px] font-bold uppercase tracking-wider text-center w-28 transition-colors duration-500 ${
-                        isCurrent ? "text-primary" : "text-muted-foreground"
-                      }`}>
-                        {estado}
-                      </span>
-                    </div>
-                  );
+              <p className="text-sm font-semibold text-foreground uppercase tracking-wide">
+                {evento.descripcion}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {new Date(evento.timestamp).toLocaleString("es-AR", {
+                  dateStyle: "medium",
+                  timeStyle: "short",
                 })}
-              </div>
+              </p>
             </div>
-
-            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4 flex items-center gap-2 mt-8">
-              <History size={14} />
-              Registro de eventos
-            </h3>
-            <ul className="space-y-3">
-              {eventosActuales.map((evento: Evento, index: number) => (
-                <li key={evento.id} className="flex items-start gap-3 text-sm transition-all duration-300">
-                  <div
-                    className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
-                      index === 0 ? "bg-primary animate-pulse" : "bg-muted-foreground/40"
-                    }`}
-                  />
-                  <span className={index === 0 ? "font-semibold text-foreground uppercase tracking-wider" : "text-muted-foreground uppercase tracking-wider"}>
-                    {evento.descripcion}
-                  </span>
-                </li>
-              ))}
-              
-              {eventosActuales.length === 0 && (
-                <li className="text-sm text-muted-foreground italic">No hay historial de movimientos.</li>
-              )}
-            </ul>
-          </div>
+          ))}
+          {eventosActuales.length === 0 && (
+            <p className="pl-6 text-sm text-muted-foreground">
+              No hay eventos registrados.
+            </p>
+          )}
         </div>
-      </Link>
+      </div>
     </div>
   );
 }

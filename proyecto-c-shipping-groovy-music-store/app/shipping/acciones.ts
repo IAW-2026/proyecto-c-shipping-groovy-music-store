@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
-export async function eliminarEnvio(id: number) {
+export async function eliminarEnvio(id: string) {
   try {
     // 1. Eliminamos primero los eventos/historial asociados a ese paquete
     await prisma.eventoDeEnvio.deleteMany({

@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,30 +6,25 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
-// EMPRESA
-// Una empresa gestiona envíos y emplea usuarios
+
 model Empresa {
-  id      Int      @id @default(autoincrement())
+  id      String   @id @default(uuid()) 
   nombre  String
 
   envios   Envio[]    @relation("EmpresaGestiona")
   usuarios Usuario[]  @relation("EmpresaEmplea")
 }
 
-// USUARIO
-// Empleado de la empresa que opera los envíos
 model Usuario {
-  id_clerk String  @id
-  mail     String
-  role String @default("OPERADOR")
-  empresaId Int
+  id_clerk  String  @id
+  mail      String
+  role      String  @default("OPERADOR")
+  empresaId String  
   empresa   Empresa @relation("EmpresaEmplea", fields: [empresaId], references: [id])
 }
 
-// DIRECCION
-// Dirección de entrega del envío
 model Direccion {
-  id         Int    @id @default(autoincrement())
+  id         String @id @default(uuid()) 
   calle      String
   ciudad     String
   provincia  String
@@ -45,30 +34,24 @@ model Direccion {
   envios Envio[]
 }
 
-// ENVIO
-// Entidad central del sistema
 model Envio {
-
-  id           Int    @id @default(autoincrement())
-  order_id     String @unique 
+  id           String @id @default(uuid()) 
+  order_id     String @unique
   seller_id    String
   buyer_id     String
-  direccion_id Int
+  direccion_id String 
   estado       String
 
-  empresaId Int
+  empresaId String   
   empresa   Empresa   @relation("EmpresaGestiona", fields: [empresaId], references: [id])
-
   direccion Direccion @relation(fields: [direccion_id], references: [id])
 
   eventos EventoDeEnvio[]
 }
 
-// EVENTO_DE_ENVIO
-// Historial de eventos asociados a un envío
 model EventoDeEnvio {
-  id          Int      @id @default(autoincrement())
-  envio_id    Int
+  id          String   @id @default(uuid())  
+  envio_id    String   
   descripcion String
   timestamp   DateTime @default(now())
 

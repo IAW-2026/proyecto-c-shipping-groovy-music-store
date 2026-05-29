@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { Trash2, AlertTriangle } from "lucide-react";
 import { eliminarEnvio } from "@/app/shipping/acciones";
 
-export default function BotonEliminar({ envioId }: { envioId: number }) {
+export default function BotonEliminar({ envioId }: { envioId: string }) {
   const [isPending, startTransition] = useTransition();
   const [isOpen, setIsOpen] = useState(false);
 

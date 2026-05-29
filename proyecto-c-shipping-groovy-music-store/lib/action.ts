@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
 export async function updateEnvioEstado(
-  envioId: number,
+  envioId: string,
   nuevoEstado: string
 ) {
 
