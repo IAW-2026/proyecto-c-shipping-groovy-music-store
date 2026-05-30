@@ -4,7 +4,6 @@ const prisma = new PrismaClient();
 
 async function main() {
 
-  // 1. Crea Empresas 
   const fastShip = await prisma.empresa.create({
     data: { nombre: "FastShip Logistics" },
   });
@@ -17,28 +16,27 @@ async function main() {
     data: { nombre: "Urban Delivery" },
   });
 
-  // 2. Crear Usuarios (Toman el UUID dinámico de las empresas)
   await prisma.usuario.createMany({
     data: [
-      { // ADMIN GLOBAL
+      {
         id_clerk: "user_3Dx6Z8xLItQFGSViwJkorIGTpEk",
         mail: "franciscouyua@gmail.com",
         role: "ADMIN",
-        empresaId: fastShip.id, 
+        empresaId: fastShip.id,
       },
-      { // OPERADOR FASTSHIP
+      {
         id_clerk: "user_3E2YATmnKT9g1Z2SKTnQIlFpO2V",
         mail: "uyuafrancisco151@gmail.com",
         role: "OPERADOR",
         empresaId: fastShip.id,
       },
-      { // OPERADOR GROOVY
+      {
         id_clerk: "operator_groovy",
         mail: "operador2@groovy.com",
         role: "OPERADOR",
         empresaId: groovy.id,
       },
-      { // OPERADOR URBAN
+      {
         id_clerk: "operator_urban",
         mail: "operador3@urban.com",
         role: "OPERADOR",
@@ -47,7 +45,6 @@ async function main() {
     ],
   });
 
-  // 3. Crear Direcciones
   const direccion1 = await prisma.direccion.create({
     data: { calle: "Av. Siempre Viva 742", ciudad: "Buenos Aires", provincia: "Buenos Aires", cod_postal: "1000", pais: "Argentina" },
   });
@@ -70,7 +67,7 @@ async function main() {
     data: { calle: "Rivadavia 1010", ciudad: "Mar del Plata", provincia: "Buenos Aires", cod_postal: "7600", pais: "Argentina" },
   });
 
-  // 4. Crear Envíos (Con Códigos de Seguimiento Cortos)
+  // EN CAMINO → fecha estimada en 2-3 días
   const envio1 = await prisma.envio.create({
     data: {
       codigo_seguimiento: "GRV-0001",
@@ -80,9 +77,11 @@ async function main() {
       direccion_id: direccion1.id,
       estado: "EN CAMINO",
       empresaId: fastShip.id,
+      fecha_entrega_estimada: new Date("2026-06-02T00:00:00Z"),
     },
   });
 
+  // ENTREGADO → fecha estimada en el pasado
   const envio2 = await prisma.envio.create({
     data: {
       codigo_seguimiento: "GRV-0002",
@@ -92,9 +91,11 @@ async function main() {
       direccion_id: direccion2.id,
       estado: "ENTREGADO",
       empresaId: groovy.id,
+      fecha_entrega_estimada: new Date("2026-05-20T00:00:00Z"),
     },
   });
 
+  // EN PREPARACIÓN → fecha estimada en 6-7 días
   const envio3 = await prisma.envio.create({
     data: {
       codigo_seguimiento: "GRV-0003",
@@ -104,6 +105,7 @@ async function main() {
       direccion_id: direccion3.id,
       estado: "EN PREPARACIÓN",
       empresaId: urban.id,
+      fecha_entrega_estimada: new Date("2026-06-07T00:00:00Z"),
     },
   });
 
@@ -116,10 +118,10 @@ async function main() {
       direccion_id: direccion4.id,
       estado: "EN CAMINO",
       empresaId: fastShip.id,
+      fecha_entrega_estimada: new Date("2026-06-03T00:00:00Z"),
     },
   });
 
-  // ---- LOS 6 ENVÍOS NUEVOS ----
   const envio5 = await prisma.envio.create({
     data: {
       codigo_seguimiento: "GRV-0005",
@@ -129,6 +131,7 @@ async function main() {
       direccion_id: direccion5.id,
       estado: "ENTREGADO",
       empresaId: groovy.id,
+      fecha_entrega_estimada: new Date("2026-05-15T00:00:00Z"),
     },
   });
 
@@ -141,6 +144,7 @@ async function main() {
       direccion_id: direccion6.id,
       estado: "EN PREPARACIÓN",
       empresaId: urban.id,
+      fecha_entrega_estimada: new Date("2026-06-08T00:00:00Z"),
     },
   });
 
@@ -153,6 +157,7 @@ async function main() {
       direccion_id: direccion7.id,
       estado: "EN CAMINO",
       empresaId: fastShip.id,
+      fecha_entrega_estimada: new Date("2026-06-04T00:00:00Z"),
     },
   });
 
@@ -162,9 +167,10 @@ async function main() {
       order_id: "550e8400-e29b-41d4-a716-446655440008",
       seller_id: "user_seller_m1n2b3v4",
       buyer_id: "user_buyer_g1f2d3s4",
-      direccion_id: direccion1.id, // Repetimos dirección para simular otro pedido al mismo lugar
+      direccion_id: direccion1.id,
       estado: "ENTREGADO",
       empresaId: fastShip.id,
+      fecha_entrega_estimada: new Date("2026-05-25T00:00:00Z"),
     },
   });
 
@@ -177,6 +183,7 @@ async function main() {
       direccion_id: direccion2.id,
       estado: "EN PREPARACIÓN",
       empresaId: groovy.id,
+      fecha_entrega_estimada: new Date("2026-06-09T00:00:00Z"),
     },
   });
 
@@ -189,22 +196,22 @@ async function main() {
       direccion_id: direccion3.id,
       estado: "EN CAMINO",
       empresaId: urban.id,
+      fecha_entrega_estimada: new Date("2026-06-05T00:00:00Z"),
     },
   });
 
-  // 5. Crear Eventos para todos los envíos
   await prisma.eventoDeEnvio.createMany({
     data: [
       { envio_id: envio1.id, descripcion: "Pedido recibido en depósito" },
       { envio_id: envio1.id, descripcion: "Envío despachado" },
       { envio_id: envio1.id, descripcion: "Repartidor en camino" },
-      
+
       { envio_id: envio2.id, descripcion: "Pedido confirmado" },
       { envio_id: envio2.id, descripcion: "En tránsito a destino" },
       { envio_id: envio2.id, descripcion: "Pedido entregado exitosamente" },
-      
+
       { envio_id: envio3.id, descripcion: "Esperando preparación" },
-      
+
       { envio_id: envio4.id, descripcion: "Retirado por operador logístico" },
       { envio_id: envio4.id, descripcion: "En tránsito a destino" },
 
