@@ -1,91 +1,135 @@
 "use client";
-
-import { useState } from "react";
+import { useState, useRef } from "react"; // ← ya no necesitás useEffect
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import EnvioCard from "@/app/componentes/EnvioCard";
 import { Search } from "lucide-react";
 
-export default function PanelFiltroEnvios({ enviosIniciales }: { enviosIniciales: any[] }) {
-  const [filtroEstado, setFiltroEstado] = useState("TODOS");
-  // Le cambiamos el nombre a la variable para que tenga más sentido
-  const [busquedaCodigo, setBusquedaCodigo] = useState("");
+const ESTADOS_FILTRO = [
+  { label: "Todos", valor: "" },
+  { label: "En Preparación", valor: "EN PREPARACIÓN" },
+  { label: "En Camino", valor: "EN CAMINO" },
+  { label: "Entregado", valor: "ENTREGADO" },
+];
 
-  // Lógica de filtrado combinada
-  const enviosFiltrados = enviosIniciales.filter((envio) => {
-    const coincideEstado = filtroEstado === "TODOS" || envio.estado === filtroEstado;
-    
-    // IMPORTANTE: Ahora buscamos en el "codigo_seguimiento" (ej: GRV-0001)
-    // Agregamos un fallback (envio.codigo_seguimiento || "") por si algún envío viejo no tiene el código
-    const codigo = envio.codigo_seguimiento || "";
-    const coincideBusqueda = codigo.toLowerCase().includes(busquedaCodigo.trim().toLowerCase());
+interface PanelProps {
+  enviosIniciales: any[];
+  totalPages: number;
+  currentPage: number;
+  estadoActivo: string;
+}
 
-    return coincideEstado && coincideBusqueda;
-  });
+export default function PanelFiltroEnvios({
+  enviosIniciales,
+  totalPages,
+  currentPage,
+  estadoActivo,
+}: PanelProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const [textoBusqueda, setTextoBusqueda] = useState(searchParams.get("query") || "");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounce sin useEffect — se dispara solo cuando el usuario escribe
+  const handleBusqueda = (texto: string) => {
+  setTextoBusqueda(texto);
+
+  if (debounceRef.current) clearTimeout(debounceRef.current); // ← checkea null
+  debounceRef.current = setTimeout(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (texto) {
+      params.set("query", texto);
+    } else {
+      params.delete("query");
+    }
+    params.set("page", "1");
+    router.push(`${pathname}?${params.toString()}`);
+  }, 400);
+};
+
+  const manejarCambioPagina = (nuevaPagina: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", nuevaPagina.toString());
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const manejarFiltroEstado = (valor: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (valor) {
+      params.set("estado", valor);
+    } else {
+      params.delete("estado");
+    }
+    params.set("page", "1");
+    router.push(`${pathname}?${params.toString()}`);
+  };
 
   return (
     <div className="space-y-6">
-      {/* ── BARRA DE CONTROLES (BOTONES + BUSCADOR ALINEADO A LA DERECHA) ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card border border-border p-4 rounded-2xl shadow-sm">
-        
-        {/* BOTONES DE FILTRO (IZQUIERDA) */}
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => setFiltroEstado("TODOS")}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-              filtroEstado === "TODOS"
-                ? "bg-primary text-primary-foreground shadow-sm font-semibold"
-                : "bg-muted/50 text-muted-foreground hover:bg-muted"
-            }`}
-          >
-            Todos ({enviosIniciales.length})
-          </button>
-          <button
-            onClick={() => setFiltroEstado("EN CAMINO")}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-              filtroEstado === "EN CAMINO"
-                ? "bg-primary text-primary-foreground shadow-sm font-semibold"
-                : "bg-muted/50 text-muted-foreground hover:bg-muted"
-            }`}
-          >
-            En camino ({enviosIniciales.filter(e => e.estado === "EN CAMINO").length})
-          </button>
-          <button
-            onClick={() => setFiltroEstado("ENTREGADO")}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-              filtroEstado === "ENTREGADO"
-                ? "bg-primary text-primary-foreground shadow-sm font-semibold"
-                : "bg-muted/50 text-muted-foreground hover:bg-muted"
-            }`}
-          >
-            Entregados ({enviosIniciales.filter(e => e.estado === "ENTREGADO").length})
-          </button>
+      {/* ── BUSCADOR ── */}
+      <div className="relative max-w-md">
+        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-muted-foreground">
+          <Search size={20} />
         </div>
-
-        {/* BUSCADOR POR CÓDIGO EN TIEMPO REAL (DERECHA) */}
-        <div className="relative w-full md:w-80">
-          <input
-            type="text"
-            value={busquedaCodigo}
-            onChange={(e) => setBusquedaCodigo(e.target.value)}
-            // Actualizamos el texto de ayuda
-            placeholder="Buscar por código (ej. GRV-0001)..."
-            className="w-full bg-background border border-border text-foreground placeholder:text-muted-foreground rounded-xl py-2.5 pl-4 pr-10 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all text-sm font-medium"
-          />
-          <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        </div>
+        <input
+          type="text"
+          value={textoBusqueda}
+          onChange={(e) => handleBusqueda(e.target.value)} // ← usa la nueva función
+          placeholder="Buscar envío por código..."
+          className="w-full bg-card text-foreground placeholder:text-muted-foreground border border-border rounded-xl py-3 pl-11 pr-4 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm"
+        />
       </div>
 
-      {/* ── LISTADO DE TARJETAS FILTRADAS ── */}
-      {enviosFiltrados.length > 0 ? (
-        <div className="grid grid-cols-1 gap-4">
-          {enviosFiltrados.map((envio) => (
-            <EnvioCard key={envio.id} envio={envio} />
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-12 bg-card border border-border rounded-2xl">
-          <p className="text-muted-foreground font-medium">
-            No se encontraron envíos con ese código de seguimiento.
-          </p>
+      {/* ── FILTROS POR ESTADO ── */}
+      <div className="flex flex-wrap gap-2">
+        {ESTADOS_FILTRO.map((filtro) => (
+          <button
+            key={filtro.valor}
+            onClick={() => manejarFiltroEstado(filtro.valor)}
+            className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider border transition-all ${
+              estadoActivo === filtro.valor
+                ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                : "bg-card text-muted-foreground border-border hover:border-primary/50 hover:text-foreground"
+            }`}
+          >
+            {filtro.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── TARJETAS ── */}
+      <div className="grid grid-cols-1 gap-4">
+        {enviosIniciales.map((envio) => (
+          <EnvioCard key={envio.id} envio={envio} />
+        ))}
+        {enviosIniciales.length === 0 && (
+          <div className="text-center py-12 bg-card border border-border border-dashed rounded-2xl">
+            <p className="text-muted-foreground text-lg">No se encontraron envíos</p>
+          </div>
+        )}
+      </div>
+
+      {/* ── PAGINACIÓN ── */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-6 pt-4">
+          <button
+            onClick={() => manejarCambioPagina(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="px-5 py-2.5 bg-card text-foreground border border-border rounded-xl font-medium shadow-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-muted/30 transition-all active:scale-95"
+          >
+            Anterior
+          </button>
+          <span className="text-muted-foreground font-medium text-sm tracking-wide">
+            PÁGINA <span className="text-foreground font-bold">{currentPage}</span> DE {totalPages}
+          </span>
+          <button
+            onClick={() => manejarCambioPagina(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="px-5 py-2.5 bg-card text-foreground border border-border rounded-xl font-medium shadow-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-muted/30 transition-all active:scale-95"
+          >
+            Siguiente
+          </button>
         </div>
       )}
     </div>

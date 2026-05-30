@@ -1,45 +1,39 @@
-// app/api/shipments/estimate/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
-// Tabla de zonas por código postal (mock — reemplazá con tu lógica real)
-function calcularZona(cp: string): number {
-  const prefijo = parseInt(cp.slice(0, 1));
-  if (prefijo <= 2) return 1; // AMBA
-  if (prefijo <= 5) return 2; // Centro
-  return 3;                   // Resto del país
-}
-
-function calcularCosto(zonaOrigen: number, zonaDestino: number, peso: number): number {
+function calcularCosto(peso: number, distancia: number): number {
   const BASE = 1500;
-  const POR_KG = 800;
-  const POR_ZONA = 600;
-  const diferencia = Math.abs(zonaOrigen - zonaDestino);
-  return Math.round(BASE + peso * POR_KG + diferencia * POR_ZONA);
+  const POR_KG = 1000;
+  const POR_KM = 2;
+  return Math.round(BASE + peso * POR_KG + distancia * POR_KM);
 }
 
-function calcularDias(zonaOrigen: number, zonaDestino: number): number {
-  const diferencia = Math.abs(zonaOrigen - zonaDestino);
-  return diferencia === 0 ? 1 : diferencia === 1 ? 3 : 5;
+function calcularDias(distancia: number): number {
+  if (distancia < 500) return 3;
+  if (distancia < 1000) return 5;
+  return 7;
+}
+
+function estimarDistancia(origenCp: number, destinoCp: number): number {
+  return Math.abs(origenCp - destinoCp) * 0.5;
 }
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = req.nextUrl;
-  const origen_cp  = searchParams.get("origen_cp")  ?? "";
-  const destino_cp = searchParams.get("destino_cp") ?? "";
-  const peso       = parseFloat(searchParams.get("peso") ?? "0");
+  const params = req.nextUrl.searchParams;
+  const origenCp = params.get("origen_cp");
+  const destinoCp = params.get("destino_cp");
+  const peso = params.get("peso");
 
-  if (!origen_cp || !destino_cp || !peso) {
+  if (!origenCp || !destinoCp || !peso) {
     return NextResponse.json(
-      { error: "origen_cp, destino_cp y peso son requeridos" },
+      { error: "parametros_requeridos", mensaje: "origen_cp, destino_cp y peso son requeridos" },
       { status: 400 }
     );
   }
 
-  const zonaO = calcularZona(origen_cp);
-  const zonaD = calcularZona(destino_cp);
+  const distancia = estimarDistancia(Number(origenCp), Number(destinoCp));
 
   return NextResponse.json({
-    costo: calcularCosto(zonaO, zonaD, peso),
-    fechaEntregaEstimada: calcularDias(zonaO, zonaD), // días hábiles
+    costo: calcularCosto(Number(peso), distancia),
+    fechaEntregaEstimada: calcularDias(distancia),
   });
 }

@@ -1,102 +1,94 @@
-import { prisma } from "@/lib/prisma";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { PrismaClient } from "@prisma/client";
 
-export async function GET(request: Request) {
+const prisma = new PrismaClient();
 
-  const { searchParams } = new URL(request.url);
+function generarCodigoSeguimiento(): string {
+  const timestamp = Date.now().toString().slice(-6);
+  return `GRV-${timestamp}`;
+}
 
-  const orderId = searchParams.get("orderId");
+function calcularFechaEstimada(): Date {
+  const dias = Math.floor(Math.random() * 5) + 3;
+  const fecha = new Date();
+  fecha.setDate(fecha.getDate() + dias);
+  return fecha;
+}
+
+export async function GET(req: NextRequest) {
+  const orderId = req.nextUrl.searchParams.get("orderId");
 
   if (!orderId) {
     return NextResponse.json(
-      {
-        error: "orderId es requerido",
-      },
-      {
-        status: 400,
-      }
+      { error: "orden_requerida", mensaje: "El parámetro orderId es requerido" },
+      { status: 400 }
     );
   }
 
-  const envio = await prisma.envio.findFirst({
-    where: {
-      order_id: orderId,
-    },
+  const envio = await prisma.envio.findUnique({
+    where: { order_id: orderId },
   });
 
   if (!envio) {
     return NextResponse.json(
-      {
-        error: "Envío no encontrado",
-      },
-      {
-        status: 404,
-      }
+      { error: "envio_no_encontrado", mensaje: "No se encontró un envío para esa orden" },
+      { status: 404 }
     );
   }
 
   return NextResponse.json({
     id: envio.order_id,
-    codigoSeguimiento: `TRK-${envio.id}`,
+    codigoSeguimiento: envio.codigo_seguimiento,
     estado: envio.estado,
-    fechaEntregaEstimada: new Date(
-      Date.now() + 3 * 24 * 60 * 60 * 1000
-    ).toISOString(),
+    fechaEntregaEstimada: envio.fecha_entrega_estimada,
   });
 }
-// Agregar en app/api/shipments/route.ts
-export async function POST(req: Request) {
+
+export async function POST(req: NextRequest) {
   const body = await req.json();
-  const {
-    "order_id externo": order_id,
-    seller_id,
-    buyer_id,
-    direccionDestino,
-    peso,
-  } = body;
+  const { order_id, seller_id, buyer_id, direccionDestino } = body;
 
-  // Crea o reutiliza la dirección de destino
-  const direccion = await prisma.direccion.create({
-    data: {
-      calle:      direccionDestino.calle      ?? "Sin especificar",
-      ciudad:     direccionDestino.ciudad     ?? "Sin especificar",
-      provincia:  direccionDestino.provincia  ?? "Sin especificar",
-      cod_postal: direccionDestino.cod_postal ?? "0000",
-      pais:       "Argentina",
-    },
-  });
+  if (!order_id || !seller_id || !buyer_id || !direccionDestino) {
+    return NextResponse.json(
+      { error: "campos_requeridos", mensaje: "Faltan campos obligatorios" },
+      { status: 400 }
+    );
+  }
 
-  // Toma la primera empresa como operador por defecto
-  // TODO: asignar la empresa correcta según lógica de negocio
   const empresa = await prisma.empresa.findFirst();
   if (!empresa) {
     return NextResponse.json(
-      { error: "No hay empresas logísticas registradas" },
+      { error: "sin_empresa", mensaje: "No hay empresas registradas" },
       { status: 500 }
     );
   }
 
-const envio = await prisma.envio.create({
-  data: {
-    order_id,
-    seller_id,
-    buyer_id,
-    estado: "En Preparación",
-    empresaId: empresa.id,
-    direccion_id: direccion.id,
-    eventos: {
-      create: {
-        descripcion: "Envío creado. Esperando preparación del vendedor.",
-      },
+  const direccion = await prisma.direccion.create({
+    data: {
+      calle: direccionDestino.calle ?? "Sin especificar",
+      ciudad: direccionDestino.ciudad,
+      provincia: direccionDestino.provincia ?? "Sin especificar",
+      cod_postal: direccionDestino.cod_postal ?? "0000",
+      pais: "Argentina",
     },
-  },
-});
+  });
 
-  const codigoSeguimiento = `TRK-${envio.id.toString().padStart(6, "0")}`;
+  const envio = await prisma.envio.create({
+    data: {
+      order_id,
+      seller_id,
+      buyer_id,
+      codigo_seguimiento: generarCodigoSeguimiento(),
+      fecha_entrega_estimada: calcularFechaEstimada(),
+      estado: "EN PREPARACIÓN",
+      direccion_id: direccion.id,
+      empresaId: empresa.id,
+    },
+  });
 
   return NextResponse.json({
     envioId: envio.id,
-    codigoSeguimiento,
-    estado: "creado",
+    codigoSeguimiento: envio.codigo_seguimiento,
+    estado: envio.estado,
   }, { status: 201 });
 }

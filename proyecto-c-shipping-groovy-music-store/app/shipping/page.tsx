@@ -6,7 +6,11 @@ import StatsEnvios from "@/app/componentes/StatsEnvios";
 import PanelFiltroEnvios from "@/app/componentes/PanelFiltrosEnvio";
 import { normalizarEstado } from "@/lib/utils";
 
-export default async function Home() {
+export default async function Home(props: {
+  searchParams: Promise<{ query?: string; page?: string; estado?: string }>;
+}) {
+  const searchParams = await props.searchParams;
+
   const user = await getCurrentUser();
 
   if (!user) {
@@ -15,8 +19,19 @@ export default async function Home() {
 
   const isAdmin = user?.role === "ADMIN";
 
+  const query = searchParams?.query || "";
+  const currentPage = Number(searchParams?.page) || 1;
+  const estadoFiltro = searchParams?.estado || "";
+  const ITEMS_POR_PAGINA = 5;
+
+  const baseWhere = {
+    ...(isAdmin ? {} : { empresaId: user?.empresaId }),
+    ...(query ? { codigo_seguimiento: { contains: query, mode: "insensitive" as const } } : {}),
+    ...(estadoFiltro ? { estado: estadoFiltro } : {}),
+  };
+
   const enviosRaw = await prisma.envio.findMany({
-    where: isAdmin ? {} : { empresaId: user?.empresaId },
+    where: baseWhere,
     include: {
       direccion: true,
       empresa: true,
@@ -24,7 +39,9 @@ export default async function Home() {
     },
     orderBy: {
       id: "desc",
-    }
+    },
+    skip: (currentPage - 1) * ITEMS_POR_PAGINA,
+    take: ITEMS_POR_PAGINA,
   });
 
   const envios = enviosRaw.map((envio) => ({
@@ -32,37 +49,53 @@ export default async function Home() {
     estado: normalizarEstado(envio.estado),
   }));
 
-  const entregados = envios.filter((e) => e.estado === "ENTREGADO").length;
-  const enCamino = envios.filter((e) => e.estado === "EN CAMINO").length;
+  const totalEnviosBuscados = await prisma.envio.count({ where: baseWhere });
+  const totalPages = Math.ceil(totalEnviosBuscados / ITEMS_POR_PAGINA);
+
+  const statsWhere = isAdmin ? {} : { empresaId: user?.empresaId };
+  const totalParaStats = await prisma.envio.count({ where: statsWhere });
+  const entregados = await prisma.envio.count({ where: { ...statsWhere, estado: "ENTREGADO" } });
+  const enCamino = await prisma.envio.count({ where: { ...statsWhere, estado: "EN CAMINO" } });
 
   return (
     <main className="min-h-screen bg-background text-foreground font-sans pb-24">
       {/* ── HEADER ── */}
-      <header className="bg-primary text-primary-foreground py-4 px-6 md:px-10 flex items-center justify-between shadow-md">
-        <div className="flex items-center gap-4">
-          <h1 className="text-2xl md:text-3xl font-normal tracking-[0.3em] uppercase">
-            G r o o v y
-          </h1>
-          <span className="hidden md:inline-block text-primary-foreground/70 text-sm font-medium tracking-widest border-l border-primary-foreground/30 pl-4 ml-2 uppercase">
-            Shipping
-          </span>
-        </div>
+<header className="bg-primary text-primary-foreground py-4 px-6 md:px-10 flex items-center justify-between shadow-md">
+  <div className="flex items-center gap-4">
+    <h1
+      className="leading-none tracking-[0.08em] uppercase text-primary-foreground"
+      style={{
+        fontFamily: "'Cormorant Garamond', serif",
+        fontWeight: 300,
+        fontSize: "clamp(1.8rem, 4vw, 2.5rem)",
+      }}
+    >
+      Groovy
+    </h1>
+    <span
+      className="hidden md:inline-block text-primary-foreground/70 text-xs font-medium tracking-[0.3em] border-l border-primary-foreground/30 pl-4 ml-2 uppercase"
+      style={{ fontFamily: "'Syne', sans-serif" }}
+    >
+      Shipping
+    </span>
+  </div>
 
-        <div className="flex items-center gap-5">
-          <div className="flex items-center gap-3 pl-4 border-l border-primary-foreground/30">
-            <div className="hidden sm:flex items-center text-xs font-bold bg-primary-foreground/20 px-3 py-1 rounded-full uppercase tracking-wider">
-              {isAdmin ? "Admin" : "Operador"}
-            </div>
-            <UserButton
-              appearance={{
-                elements: {
-                  avatarBox: "w-9 h-9 border-2 border-primary-foreground/50",
-                },
-              }}
-            />
-          </div>
-        </div>
-      </header>
+  <div className="flex items-center gap-3 pl-4 border-l border-primary-foreground/30">
+    <div
+      className="hidden sm:flex items-center text-xs font-semibold bg-primary-foreground/20 px-3 py-1 rounded-full uppercase tracking-wider"
+      style={{ fontFamily: "'DM Sans', sans-serif" }}
+    >
+      {isAdmin ? "Admin" : "Operador"}
+    </div>
+    <UserButton
+      appearance={{
+        elements: {
+          avatarBox: "w-9 h-9 border-2 border-primary-foreground/50",
+        },
+      }}
+    />
+  </div>
+</header>
 
       {/* ── CONTENIDO PRINCIPAL ── */}
       <div className="max-w-[1400px] mx-auto px-6 md:px-10 pt-12">
@@ -77,17 +110,22 @@ export default async function Home() {
           <div className="w-16 h-1 bg-primary mt-6" />
         </div>
 
-        {/* STATS (Ocupando todo el ancho ahora) */}
+        {/* STATS */}
         <div className="mb-10">
           <StatsEnvios
-            totalInicial={envios.length}
+            totalInicial={totalParaStats}
             enCaminoInicial={enCamino}
             entregadosInicial={entregados}
           />
         </div>
 
-        {/* PANEL CON BUSCADOR EN TIEMPO REAL INTEGRADO */}
-        <PanelFiltroEnvios enviosIniciales={envios} />
+        {/* PANEL */}
+        <PanelFiltroEnvios
+          enviosIniciales={envios}
+          totalPages={totalPages}
+          currentPage={currentPage}
+          estadoActivo={estadoFiltro}
+        />
       </div>
     </main>
   );

@@ -36,6 +36,7 @@ model Envio {
   id           String          @id @default(uuid())
   order_id     String          @unique
   codigo_seguimiento String    @unique
+  fecha_entrega_estimada DateTime
   seller_id    String
   buyer_id     String
   direccion_id String
