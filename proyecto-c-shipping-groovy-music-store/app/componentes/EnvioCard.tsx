@@ -37,8 +37,8 @@ export default function EnvioCard({ envio }: { envio: any }) {
     setEventosActuales([nuevoEvento, ...eventosActuales]);
 
     try {
-      // 2. Llamada a tu API o Server Action (Ajustá la ruta según tu proyecto)
-      // Esto asume que tenés un endpoint, si usás Server Actions, cambialo por tu función
+      // 2. Llamada a tu API o Server Action
+      // Mantenemos envio.id acá porque la base de datos necesita el UUID para actualizar
       const res = await fetch(`/api/envios/${envio.id}/estado`, {
         method: "PATCH", // o POST
         headers: { "Content-Type": "application/json" },
@@ -67,10 +67,13 @@ export default function EnvioCard({ envio }: { envio: any }) {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Package className="text-primary" size={20} />
-            <h3 className="font-bold text-lg">Orden: {envio.order_id.substring(0, 8)}...</h3>
+            {/* ACÁ MOSTRAMOS EL CÓDIGO DE SEGUIMIENTO */}
+            <h3 className="font-bold text-lg font-mono tracking-tight">
+              {envio.codigo_seguimiento}
+            </h3>
           </div>
-          <p className="text-xs text-muted-foreground uppercase tracking-wider font-mono">
-            ID: {envio.id}
+          <p className="text-xs text-muted-foreground uppercase tracking-wider">
+            Código de seguimiento
           </p>
         </div>
 

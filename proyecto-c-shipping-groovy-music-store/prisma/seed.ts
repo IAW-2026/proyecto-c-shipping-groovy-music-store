@@ -3,15 +3,8 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  // 1. (OPCIONAL PERO RECOMENDADO) Limpiar la base de datos antes de poblarla
-  // Esto evita errores de duplicación si corrés el seed varias veces
-  await prisma.eventoDeEnvio.deleteMany();
-  await prisma.envio.deleteMany();
-  await prisma.direccion.deleteMany();
-  await prisma.usuario.deleteMany();
-  await prisma.empresa.deleteMany();
 
-  // 2. Crear Empresas (Prisma les asigna un UUID automáticamente)
+  // 1. Crea Empresas 
   const fastShip = await prisma.empresa.create({
     data: { nombre: "FastShip Logistics" },
   });
@@ -24,7 +17,7 @@ async function main() {
     data: { nombre: "Urban Delivery" },
   });
 
-  // 3. Crear Usuarios (Toman el UUID dinámico de las empresas)
+  // 2. Crear Usuarios (Toman el UUID dinámico de las empresas)
   await prisma.usuario.createMany({
     data: [
       { // ADMIN GLOBAL
@@ -54,37 +47,45 @@ async function main() {
     ],
   });
 
-  // 4. Crear Direcciones
+  // 3. Crear Direcciones
   const direccion1 = await prisma.direccion.create({
     data: { calle: "Av. Siempre Viva 742", ciudad: "Buenos Aires", provincia: "Buenos Aires", cod_postal: "1000", pais: "Argentina" },
   });
-
   const direccion2 = await prisma.direccion.create({
     data: { calle: "San Martín 123", ciudad: "Córdoba", provincia: "Córdoba", cod_postal: "5000", pais: "Argentina" },
   });
-
   const direccion3 = await prisma.direccion.create({
     data: { calle: "Belgrano 456", ciudad: "Rosario", provincia: "Santa Fe", cod_postal: "2000", pais: "Argentina" },
   });
-
   const direccion4 = await prisma.direccion.create({
     data: { calle: "Mitre 999", ciudad: "Mendoza", provincia: "Mendoza", cod_postal: "5500", pais: "Argentina" },
   });
+  const direccion5 = await prisma.direccion.create({
+    data: { calle: "Sarmiento 44", ciudad: "San Miguel de Tucumán", provincia: "Tucumán", cod_postal: "4000", pais: "Argentina" },
+  });
+  const direccion6 = await prisma.direccion.create({
+    data: { calle: "Moreno 876", ciudad: "La Plata", provincia: "Buenos Aires", cod_postal: "1900", pais: "Argentina" },
+  });
+  const direccion7 = await prisma.direccion.create({
+    data: { calle: "Rivadavia 1010", ciudad: "Mar del Plata", provincia: "Buenos Aires", cod_postal: "7600", pais: "Argentina" },
+  });
 
-  // 5. Crear Envíos (Ahora los seller_id y buyer_id simulan ser UUIDs/Clerk IDs externos)
+  // 4. Crear Envíos (Con Códigos de Seguimiento Cortos)
   const envio1 = await prisma.envio.create({
     data: {
-      order_id: "550e8400-e29b-41d4-a716-446655440001", // Simulación de UUID de Orden
-      seller_id: "user_seller_a1b2c3d4",                // Simulación ID externo
-      buyer_id: "user_buyer_x9y8z7w6",                  // Simulación ID externo
+      codigo_seguimiento: "GRV-0001",
+      order_id: "550e8400-e29b-41d4-a716-446655440001",
+      seller_id: "user_seller_a1b2c3d4",
+      buyer_id: "user_buyer_x9y8z7w6",
       direccion_id: direccion1.id,
-      estado: "EN CAMINO",                              // Nota: Asegurate de usar el estado tal como lo espera tu frontend ("EN CAMINO" o "EN_CAMINO")
+      estado: "EN CAMINO",
       empresaId: fastShip.id,
     },
   });
 
   const envio2 = await prisma.envio.create({
     data: {
+      codigo_seguimiento: "GRV-0002",
       order_id: "550e8400-e29b-41d4-a716-446655440002",
       seller_id: "user_seller_e5f6g7h8",
       buyer_id: "user_buyer_v5u4t3s2",
@@ -96,6 +97,7 @@ async function main() {
 
   const envio3 = await prisma.envio.create({
     data: {
+      codigo_seguimiento: "GRV-0003",
       order_id: "550e8400-e29b-41d4-a716-446655440003",
       seller_id: "user_seller_i9j0k1l2",
       buyer_id: "user_buyer_r1q2p3o4",
@@ -107,6 +109,7 @@ async function main() {
 
   const envio4 = await prisma.envio.create({
     data: {
+      codigo_seguimiento: "GRV-0004",
       order_id: "550e8400-e29b-41d4-a716-446655440004",
       seller_id: "user_seller_m3n4o5p6",
       buyer_id: "user_buyer_m5n6o7p8",
@@ -116,21 +119,117 @@ async function main() {
     },
   });
 
-  // 6. Crear Eventos
+  // ---- LOS 6 ENVÍOS NUEVOS ----
+  const envio5 = await prisma.envio.create({
+    data: {
+      codigo_seguimiento: "GRV-0005",
+      order_id: "550e8400-e29b-41d4-a716-446655440005",
+      seller_id: "user_seller_q1w2e3r4",
+      buyer_id: "user_buyer_a1s2d3f4",
+      direccion_id: direccion5.id,
+      estado: "ENTREGADO",
+      empresaId: groovy.id,
+    },
+  });
+
+  const envio6 = await prisma.envio.create({
+    data: {
+      codigo_seguimiento: "GRV-0006",
+      order_id: "550e8400-e29b-41d4-a716-446655440006",
+      seller_id: "user_seller_z1x2c3v4",
+      buyer_id: "user_buyer_p1o2i3u4",
+      direccion_id: direccion6.id,
+      estado: "EN PREPARACIÓN",
+      empresaId: urban.id,
+    },
+  });
+
+  const envio7 = await prisma.envio.create({
+    data: {
+      codigo_seguimiento: "GRV-0007",
+      order_id: "550e8400-e29b-41d4-a716-446655440007",
+      seller_id: "user_seller_t1y2u3i4",
+      buyer_id: "user_buyer_l1k2j3h4",
+      direccion_id: direccion7.id,
+      estado: "EN CAMINO",
+      empresaId: fastShip.id,
+    },
+  });
+
+  const envio8 = await prisma.envio.create({
+    data: {
+      codigo_seguimiento: "GRV-0008",
+      order_id: "550e8400-e29b-41d4-a716-446655440008",
+      seller_id: "user_seller_m1n2b3v4",
+      buyer_id: "user_buyer_g1f2d3s4",
+      direccion_id: direccion1.id, // Repetimos dirección para simular otro pedido al mismo lugar
+      estado: "ENTREGADO",
+      empresaId: fastShip.id,
+    },
+  });
+
+  const envio9 = await prisma.envio.create({
+    data: {
+      codigo_seguimiento: "GRV-0009",
+      order_id: "550e8400-e29b-41d4-a716-446655440009",
+      seller_id: "user_seller_r1t2y3u4",
+      buyer_id: "user_buyer_m1n2b3v4",
+      direccion_id: direccion2.id,
+      estado: "EN PREPARACIÓN",
+      empresaId: groovy.id,
+    },
+  });
+
+  const envio10 = await prisma.envio.create({
+    data: {
+      codigo_seguimiento: "GRV-0010",
+      order_id: "550e8400-e29b-41d4-a716-446655440010",
+      seller_id: "user_seller_c1x2z3a4",
+      buyer_id: "user_buyer_q1w2e3r4",
+      direccion_id: direccion3.id,
+      estado: "EN CAMINO",
+      empresaId: urban.id,
+    },
+  });
+
+  // 5. Crear Eventos para todos los envíos
   await prisma.eventoDeEnvio.createMany({
     data: [
       { envio_id: envio1.id, descripcion: "Pedido recibido en depósito" },
       { envio_id: envio1.id, descripcion: "Envío despachado" },
       { envio_id: envio1.id, descripcion: "Repartidor en camino" },
+      
       { envio_id: envio2.id, descripcion: "Pedido confirmado" },
+      { envio_id: envio2.id, descripcion: "En tránsito a destino" },
       { envio_id: envio2.id, descripcion: "Pedido entregado exitosamente" },
+      
       { envio_id: envio3.id, descripcion: "Esperando preparación" },
+      
       { envio_id: envio4.id, descripcion: "Retirado por operador logístico" },
       { envio_id: envio4.id, descripcion: "En tránsito a destino" },
+
+      { envio_id: envio5.id, descripcion: "Empaquetado y rotulado" },
+      { envio_id: envio5.id, descripcion: "Despachado a sucursal destino" },
+      { envio_id: envio5.id, descripcion: "Pedido entregado exitosamente" },
+
+      { envio_id: envio6.id, descripcion: "Orden recibida" },
+      { envio_id: envio6.id, descripcion: "Esperando recolección del vendedor" },
+
+      { envio_id: envio7.id, descripcion: "Ingreso a planta troncal" },
+      { envio_id: envio7.id, descripcion: "En viaje a ciudad destino" },
+
+      { envio_id: envio8.id, descripcion: "Preparado" },
+      { envio_id: envio8.id, descripcion: "Visita a domicilio" },
+      { envio_id: envio8.id, descripcion: "Entregado a un adulto" },
+
+      { envio_id: envio9.id, descripcion: "Pago confirmado, en preparación" },
+
+      { envio_id: envio10.id, descripcion: "Recibido en centro logístico" },
+      { envio_id: envio10.id, descripcion: "En camino al domicilio del comprador" },
     ],
   });
 
-  console.log("Seed completado correctamente con UUIDs ✅");
+  console.log("✅ Seed completado correctamente. 10 envíos generados con códigos de seguimiento (GRV-XXXX).");
 }
 
 main()

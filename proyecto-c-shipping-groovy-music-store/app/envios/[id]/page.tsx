@@ -15,7 +15,7 @@ export default async function EnvioPage({ params }: Props) {
 
   const envioRaw = await prisma.envio.findUnique({
     where: {
-      id: Number(id),
+      id: id,
     },
     include: {
       direccion: true,
