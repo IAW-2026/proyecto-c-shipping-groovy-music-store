@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import StatsEnvios from "@/app/componentes/StatsEnvios";
 import PanelFiltroEnvios from "@/app/componentes/PanelFiltrosEnvio";
 import { normalizarEstado } from "@/lib/utils";
+import Link from "next/link";
 
 export default async function Home(props: {
   searchParams: Promise<{ query?: string; page?: string; estado?: string }>;
@@ -13,23 +14,28 @@ export default async function Home(props: {
 
   const user = await getCurrentUser();
 
-if (!user) {
-  redirect("/no-autorizado");
-}
+  // Si el usuario no existe en la BD lo redirige a la página de sin acceso
+  if (!user) {
+    redirect("/no-autorizado");
+  }
 
   const isAdmin = user?.role === "ADMIN";
 
+  // Lee los parámetros de la URL para filtrado, búsqueda y paginación
   const query = searchParams?.query || "";
   const currentPage = Number(searchParams?.page) || 1;
   const estadoFiltro = searchParams?.estado || "";
   const ITEMS_POR_PAGINA = 5;
 
+  // Filtro base: el admin ve todos los envíos, el operador solo los de su empresa.
+  // Se agregan filtros de búsqueda y estado si están presentes en la URL.
   const baseWhere = {
     ...(isAdmin ? {} : { empresaId: user?.empresaId }),
     ...(query ? { codigo_seguimiento: { contains: query, mode: "insensitive" as const } } : {}),
     ...(estadoFiltro ? { estado: estadoFiltro } : {}),
   };
 
+  // Consulta paginada — trae solo los envíos de la página actual
   const enviosRaw = await prisma.envio.findMany({
     where: baseWhere,
     include: {
@@ -44,14 +50,17 @@ if (!user) {
     take: ITEMS_POR_PAGINA,
   });
 
+  // Normaliza el campo estado para unificar variaciones de texto de la BD
   const envios = enviosRaw.map((envio) => ({
     ...envio,
     estado: normalizarEstado(envio.estado),
   }));
 
+  // Cuenta el total de envíos que coinciden con el filtro para calcular las páginas
   const totalEnviosBuscados = await prisma.envio.count({ where: baseWhere });
   const totalPages = Math.ceil(totalEnviosBuscados / ITEMS_POR_PAGINA);
 
+  // Las stats usan un filtro separado para no verse afectadas por la búsqueda activa
   const statsWhere = isAdmin ? {} : { empresaId: user?.empresaId };
   const totalParaStats = await prisma.envio.count({ where: statsWhere });
   const entregados = await prisma.envio.count({ where: { ...statsWhere, estado: "ENTREGADO" } });
@@ -60,54 +69,68 @@ if (!user) {
   return (
     <main className="min-h-screen bg-background text-foreground font-sans pb-24">
       {/* ── HEADER ── */}
-<header className="bg-primary text-primary-foreground py-4 px-6 md:px-10 flex items-center justify-between shadow-md">
-  <div className="flex items-center gap-4">
-    <h1
-      className="leading-none tracking-[0.08em] uppercase text-primary-foreground"
-      style={{
-        fontFamily: "'Cormorant Garamond', serif",
-        fontWeight: 300,
-        fontSize: "clamp(1.8rem, 4vw, 2.5rem)",
-      }}
-    >
-      Groovy
-    </h1>
-    <span
-      className="hidden md:inline-block text-primary-foreground/70 text-xs font-medium tracking-[0.3em] border-l border-primary-foreground/30 pl-4 ml-2 uppercase"
-      style={{ fontFamily: "'Syne', sans-serif" }}
-    >
-      Shipping
-    </span>
-  </div>
+      <header className="bg-primary text-primary-foreground py-4 px-6 md:px-10 flex items-center justify-between shadow-md">
+        <div className="flex items-center gap-4">
+          <h1
+            className="leading-none tracking-[0.08em] uppercase text-primary-foreground"
+            style={{
+              fontFamily: "'Cormorant Garamond', serif",
+              fontWeight: 300,
+              fontSize: "clamp(1.8rem, 4vw, 2.5rem)",
+            }}
+          >
+            Groovy
+          </h1>
+          <span
+            className="hidden md:inline-block text-primary-foreground/70 text-xs font-medium tracking-[0.3em] border-l border-primary-foreground/30 pl-4 ml-2 uppercase"
+            style={{ fontFamily: "'Syne', sans-serif" }}
+          >
+            Shipping
+          </span>
+        </div>
 
-  <div className="flex items-center gap-3 pl-4 border-l border-primary-foreground/30">
-    <div
-      className="hidden sm:flex items-center text-xs font-semibold bg-primary-foreground/20 px-3 py-1 rounded-full uppercase tracking-wider"
-      style={{ fontFamily: "'DM Sans', sans-serif" }}
-    >
-      {isAdmin ? "Admin" : "Operador"}
-    </div>
-    <UserButton
-      appearance={{
-        elements: {
-          avatarBox: "w-9 h-9 border-2 border-primary-foreground/50",
-        },
-      }}
-    />
-  </div>
-</header>
+        <div className="flex items-center gap-3 pl-4 border-l border-primary-foreground/30">
+          <div
+            className="hidden sm:flex items-center text-xs font-semibold bg-primary-foreground/20 px-3 py-1 rounded-full uppercase tracking-wider"
+            style={{ fontFamily: "'DM Sans', sans-serif" }}
+          >
+            {isAdmin ? "Admin" : "Operador"}
+          </div>
+          <UserButton
+            appearance={{
+              elements: {
+                avatarBox: "w-9 h-9 border-2 border-primary-foreground/50",
+              },
+            }}
+          />
+        </div>
+      </header>
 
       {/* ── CONTENIDO PRINCIPAL ── */}
       <div className="max-w-[1400px] mx-auto px-6 md:px-10 pt-12">
-        {/* TÍTULO */}
+
+        {/* TÍTULO — el botón de nuevo envío solo es visible para admins */}
         <div className="mb-10">
-          <h2 className="text-4xl md:text-5xl font-medium text-foreground mb-3">
-            Panel Operativo
-          </h2>
-          <p className="text-muted-foreground text-lg">
-            ¡Hola! Mirá el estado actual de las rutas y paquetes asignados.
-          </p>
-          <div className="w-16 h-1 bg-primary mt-6" />
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-4xl md:text-5xl font-medium text-foreground mb-3">
+                Panel Operativo
+              </h2>
+              <p className="text-muted-foreground text-lg">
+                ¡Hola! Mirá el estado actual de las rutas y paquetes asignados.
+              </p>
+              <div className="w-16 h-1 bg-primary mt-6" />
+            </div>
+
+            {isAdmin && (
+              <Link
+                href="/shipping/nuevo"
+                className="flex items-center gap-2 px-5 py-3 bg-primary text-primary-foreground rounded-xl font-semibold text-sm uppercase tracking-wider hover:opacity-90 transition-all shadow-md"
+              >
+                + Nuevo Envío
+              </Link>
+            )}
+          </div>
         </div>
 
         {/* STATS */}
@@ -119,7 +142,7 @@ if (!user) {
           />
         </div>
 
-        {/* PANEL */}
+        {/* PANEL con buscador, filtros y paginación */}
         <PanelFiltroEnvios
           enviosIniciales={envios}
           totalPages={totalPages}

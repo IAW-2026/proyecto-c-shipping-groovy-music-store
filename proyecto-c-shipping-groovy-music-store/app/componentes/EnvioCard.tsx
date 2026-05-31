@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Package, MapPin, History, ChevronDown, Check, Truck } from "lucide-react";
 import BotonEliminar from "@/app/componentes/BotonEliminar";
 
+// Estados válidos del sistema en orden de progreso
 const ESTADOS = ["EN PREPARACIÓN", "EN CAMINO", "ENTREGADO"] as const;
 
 export default function EnvioCard({ envio }: { envio: any }) {
@@ -14,10 +15,14 @@ export default function EnvioCard({ envio }: { envio: any }) {
   const [eventosActuales, setEventosActuales] = useState(envio.eventos || []);
   const [isUpdating, setIsUpdating] = useState(false);
 
+  // Porcentaje de la barra de progreso según el estado actual
   const indiceEstado = ESTADOS.indexOf(estadoActual);
   const porcentajeBarra =
     indiceEstado === 0 ? "0%" : indiceEstado === 1 ? "50%" : "100%";
 
+  // Cambia el estado del envío con actualización optimista:
+  // primero actualiza la UI y luego confirma con la API.
+  // Si la API falla revierte al estado anterior.
   const handleCambiarEstado = async (e: React.MouseEvent, nuevoEstado: string) => {
     e.stopPropagation();
     if (nuevoEstado === estadoActual || isUpdating) return;
@@ -43,9 +48,9 @@ export default function EnvioCard({ envio }: { envio: any }) {
 
       if (!res.ok) throw new Error("Falló la actualización en la BD");
 
+      // Refresca los Server Components para actualizar las estadísticas
       router.refresh();
     } catch (error) {
-      console.error(error);
       alert("Hubo un error al actualizar el estado. Volviendo al estado anterior.");
       setEstadoActual(estadoAnterior);
       setEventosActuales(eventosAnteriores);
@@ -119,6 +124,17 @@ export default function EnvioCard({ envio }: { envio: any }) {
             <p className="text-xs text-muted-foreground">
               {envio.direccion?.ciudad}, {envio.direccion?.provincia}
             </p>
+            {/* Solo se muestra si el envío tiene fecha estimada cargada */}
+            {envio.fecha_entrega_estimada && (
+              <p className="text-xs text-primary font-semibold mt-1">
+                Entrega estimada:{" "}
+                {new Date(envio.fecha_entrega_estimada).toLocaleDateString("es-AR", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })}
+              </p>
+            )}
           </div>
         </div>
         <div className="flex items-start gap-3 p-3 rounded-xl bg-secondary/30 border border-border/50">
@@ -158,6 +174,7 @@ export default function EnvioCard({ envio }: { envio: any }) {
         <div className="border-l-2 border-border ml-6 space-y-4 py-2 relative z-20">
           {eventosActuales.map((evento: any, index: number) => (
             <div key={evento.id} className="relative pl-6">
+              {/* El último evento titila para indicar que es el más reciente */}
               <div
                 className={`absolute w-3 h-3 rounded-full -left-[7px] top-1.5 ${
                   index === 0 ? "bg-primary animate-pulse" : "bg-muted-foreground"
@@ -182,7 +199,7 @@ export default function EnvioCard({ envio }: { envio: any }) {
         </div>
       </div>
 
-      {/* ── BOTÓN FINALIZAR (solo cuando está entregado) ── */}
+      {/* Solo visible cuando el envío fue marcado como entregado */}
       {estadoActual === "ENTREGADO" && (
         <div className="mt-4 flex justify-end">
           <BotonEliminar envioId={envio.id} />

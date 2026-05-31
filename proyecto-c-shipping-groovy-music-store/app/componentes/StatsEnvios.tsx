@@ -15,7 +15,8 @@ export default function StatsEnvios({
   const [enCamino, setEnCamino] = useState(enCaminoInicial);
   const [entregados, setEntregados] = useState(entregadosInicial);
 
-  // Sincronizar estado con props iniciales cuando el servidor revalida los datos (ej: al eliminar un envío)
+  // Sincroniza el estado local cuando el servidor revalida los datos,
+  // por ejemplo al eliminar un envío o cambiar de filtro
   const [prevEnCaminoInicial, setPrevEnCaminoInicial] = useState(enCaminoInicial);
   if (enCaminoInicial !== prevEnCaminoInicial) {
     setPrevEnCaminoInicial(enCaminoInicial);
@@ -28,6 +29,8 @@ export default function StatsEnvios({
     setEntregados(entregadosInicial);
   }
 
+  // Escucha el evento "estadoCambiado" emitido por EnvioCard al cambiar el estado de un envío.
+  // Actualiza los contadores restando el estado anterior y sumando el nuevo.
   useEffect(() => {
     function handleCambio(e: CustomEvent) {
       const { anterior, nuevo } = e.detail;
@@ -46,7 +49,7 @@ export default function StatsEnvios({
   return (
     <div className="grid md:grid-cols-3 gap-6 h-full">
 
-      {/* TOTAL */}
+      {/* TOTAL — cantidad fija de envíos asignados al usuario o empresa */}
       <div className="bg-card text-card-foreground rounded-2xl border border-border shadow-sm p-6 border-b-4 border-b-primary">
         <div className="flex items-center justify-between h-full">
           <div>
@@ -63,7 +66,7 @@ export default function StatsEnvios({
         </div>
       </div>
 
-      {/* EN CAMINO */}
+      {/* EN CAMINO — se actualiza en tiempo real al cambiar estado en una tarjeta */}
       <div className="bg-card text-card-foreground rounded-2xl border border-border shadow-sm p-6 border-b-4 border-b-accent">
         <div className="flex items-center justify-between h-full">
           <div>
@@ -80,7 +83,7 @@ export default function StatsEnvios({
         </div>
       </div>
 
-      {/* ENTREGADOS */}
+      {/* ENTREGADOS — se actualiza en tiempo real al cambiar estado en una tarjeta */}
       <div className="bg-card text-card-foreground rounded-2xl border border-border shadow-sm p-6 border-b-4 border-b-secondary">
         <div className="flex items-center justify-between h-full">
           <div>

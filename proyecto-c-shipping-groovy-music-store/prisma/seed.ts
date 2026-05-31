@@ -247,8 +247,6 @@ async function main() {
       { envio_id: envio10.id, descripcion: "En camino al domicilio del comprador" },
     ],
   });
-
-  console.log("✅ Seed completado correctamente. 10 envíos generados con códigos de seguimiento (GRV-XXXX).");
 }
 
 main()
