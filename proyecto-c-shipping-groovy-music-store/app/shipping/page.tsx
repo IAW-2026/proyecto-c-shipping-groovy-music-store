@@ -13,9 +13,9 @@ export default async function Home(props: {
 
   const user = await getCurrentUser();
 
-  if (!user) {
-    redirect("/sign-in");
-  }
+if (!user) {
+  redirect("/no-autorizado");
+}
 
   const isAdmin = user?.role === "ADMIN";
 

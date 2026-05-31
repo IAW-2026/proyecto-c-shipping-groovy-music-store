@@ -19,8 +19,14 @@ async function main() {
   await prisma.usuario.createMany({
     data: [
       {
+        id_clerk: "user_3EVKE9kMVXfMJwBhN1kgNYaj8qi",
+        mail: "shippingadmin@gmail.com",
+        role: "ADMIN",
+        empresaId: fastShip.id,
+      },
+      {
         id_clerk: "user_3Dx6Z8xLItQFGSViwJkorIGTpEk",
-        mail: "franciscouyua@gmail.com",
+        mail: "franciscouyua11@gmail.com",
         role: "ADMIN",
         empresaId: fastShip.id,
       },
@@ -31,14 +37,20 @@ async function main() {
         empresaId: fastShip.id,
       },
       {
-        id_clerk: "operator_groovy",
-        mail: "operador2@groovy.com",
+        id_clerk: "user_3EVJ89cP7CJgPS8CoPBNJnuMID0",
+        mail: "operadorfastShip@gmail.com",
+        role: "OPERADOR",
+        empresaId: fastShip.id,
+      },
+      {
+        id_clerk: "user_3EVBatBt4ywVQ6SBH5CmpOFFzfB",
+        mail: "operadorgroovy24@gmail.com",
         role: "OPERADOR",
         empresaId: groovy.id,
       },
       {
-        id_clerk: "operator_urban",
-        mail: "operador3@urban.com",
+        id_clerk: "user_3EVK4YOxXbaCPauRYbzvrQ3vBTJ",
+        mail: "operadorUrban@urban.com",
         role: "OPERADOR",
         empresaId: urban.id,
       },
