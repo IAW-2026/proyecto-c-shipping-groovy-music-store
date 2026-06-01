@@ -20,6 +20,11 @@ export default function EnvioCard({ envio }: { envio: any }) {
   const porcentajeBarra =
     indiceEstado === 0 ? "0%" : indiceEstado === 1 ? "50%" : "100%";
 
+  // Navega a la página de detalle del envío
+  const handleVerDetalle = () => {
+    router.push(`/shipping/${envio.id}`);
+  };
+
   // Cambia el estado del envío con actualización optimista:
   // primero actualiza la UI y luego confirma con la API.
   // Si la API falla revierte al estado anterior.
@@ -60,8 +65,10 @@ export default function EnvioCard({ envio }: { envio: any }) {
   };
 
   return (
-    <div className="bg-card text-card-foreground rounded-2xl shadow-sm border border-border p-6 transition-all hover:shadow-md relative overflow-hidden">
-
+    <div
+      onClick={handleVerDetalle}
+      className="bg-card text-card-foreground rounded-2xl shadow-sm border border-border p-6 transition-all hover:shadow-md hover:border-primary/40 relative overflow-hidden cursor-pointer"
+    >
       {/* ── ENCABEZADO ── */}
       <div className="flex justify-between items-start mb-6">
         <div>
@@ -201,11 +208,13 @@ export default function EnvioCard({ envio }: { envio: any }) {
 
       {/* Solo visible cuando el envío fue marcado como entregado */}
       {estadoActual === "ENTREGADO" && (
-        <div className="mt-4 flex justify-end">
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="mt-4 flex justify-end"
+        >
           <BotonEliminar envioId={envio.id} />
         </div>
       )}
-
     </div>
   );
 }
