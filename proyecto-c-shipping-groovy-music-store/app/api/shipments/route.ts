@@ -55,6 +55,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  //
   const empresa = await prisma.empresa.findFirst();
   if (!empresa) {
     return NextResponse.json(

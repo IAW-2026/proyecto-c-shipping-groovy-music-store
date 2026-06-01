@@ -123,12 +123,20 @@ export default async function Home(props: {
             </div>
 
             {isAdmin && (
-              <Link
-                href="/shipping/nuevo"
-                className="flex items-center gap-2 px-5 py-3 bg-primary text-primary-foreground rounded-xl font-semibold text-sm uppercase tracking-wider hover:opacity-90 transition-all shadow-md"
-              >
-                + Nuevo Envío
-              </Link>
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/admin"
+                  className="flex items-center gap-2 px-5 py-3 border border-border text-foreground rounded-xl font-semibold text-sm uppercase tracking-wider hover:bg-muted transition-all"
+                >
+                  Reporte
+                </Link>
+                <Link
+                  href="/shipping/nuevo"
+                  className="flex items-center gap-2 px-5 py-3 bg-primary text-primary-foreground rounded-xl font-semibold text-sm uppercase tracking-wider hover:opacity-90 transition-all shadow-md"
+                >
+                  + Nuevo Envío
+                </Link>
+              </div>
             )}
           </div>
         </div>

@@ -3,11 +3,20 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
+import { getCurrentUser } from "@/lib/auth";
 
 // Elimina un envío y todos sus eventos asociados de la base de datos.
 // Borra primero los eventos para evitar errores de foreign key.
 // Revalida la página para reflejar el cambio en el panel.
 export async function eliminarEnvio(id: string) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { success: false, error: "No autenticado." };
+  }
+  if (user.role !== "ADMIN") {
+    return { success: false, error: "Solo un administrador puede eliminar envíos." };
+  }
+
   try {
     await prisma.eventoDeEnvio.deleteMany({
       where: { envio_id: id },
@@ -31,6 +40,14 @@ export async function eliminarEnvio(id: string) {
 // y el order_id como UUID aleatorio.
 // Crea primero la dirección y luego el envío vinculado a ella.
 export async function crearEnvio(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { success: false, errores: { general: "No autenticado." } };
+  }
+  if (user.role !== "ADMIN") {
+    return { success: false, errores: { general: "Solo un administrador puede crear envíos." } };
+  }
+
   const seller_id = formData.get("seller_id") as string;
   const buyer_id = formData.get("buyer_id") as string;
   const calle = formData.get("calle") as string;

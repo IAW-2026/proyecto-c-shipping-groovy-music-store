@@ -6,7 +6,7 @@ export async function notificarEntregaExitosa(
   const paymentsUrl = process.env.PAYMENTS_API_URL;
 
   if (!paymentsUrl) {
-    console.warn("PAYMENTS_API_URL no configurada, saltando notificación");
+    console.warn("Error: PAYMENTS_API_URL no configurada");
     return null;
   }
 

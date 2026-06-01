@@ -58,7 +58,7 @@ async function main() {
   });
 
   const direccion1 = await prisma.direccion.create({
-    data: { calle: "Av. Siempre Viva 742", ciudad: "Buenos Aires", provincia: "Buenos Aires", cod_postal: "1000", pais: "Argentina" },
+    data: { calle: "Castelli 785", ciudad: "Bahia Blanca", provincia: "Buenos Aires", cod_postal: "8000", pais: "Argentina" },
   });
   const direccion2 = await prisma.direccion.create({
     data: { calle: "San Martín 123", ciudad: "Córdoba", provincia: "Córdoba", cod_postal: "5000", pais: "Argentina" },

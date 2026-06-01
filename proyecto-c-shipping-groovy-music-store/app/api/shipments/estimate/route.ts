@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
 
 function calcularCosto(peso: number, distancia: number): number {
   const BASE = 1500;
@@ -18,6 +19,11 @@ function estimarDistancia(origenCp: number, destinoCp: number): number {
 }
 
 export async function GET(req: NextRequest) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "no_autenticado" }, { status: 401 });
+  }
+
   const params = req.nextUrl.searchParams;
   const origenCp = params.get("origen_cp");
   const destinoCp = params.get("destino_cp");
