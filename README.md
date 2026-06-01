@@ -15,12 +15,16 @@ Tambien se puede diferencian los distintos usuarios asignados a sus empresas , e
 
 Por razones de seguridad ninguna persona de afuera de la app de shipping tiene permitido el acceso solo se podra entrar a controlar los envios con estos usuarios :
 
-ADMIN : username : shippingadmin contraseña : shippingadmin
+ADMIN : Email : shippingadmin+clerktest@iaw.com
+        contraseña : shippingadmin
 
-OPERADOR Groovy : username : operadorgroovy24 contraseña : operadorgroovy24
+OPERADOR Groovy : Email : shippingoperadorgroovy+clerktest@iaw.com
+                  contraseña : operadorgroovy24
 
-OPERADOR Urban : username : operadorUrban contraseña : operadorUrban
+OPERADOR Urban : Email : shippingoperadorurban+clerktest@iaw.com 
+                 contraseña : operadorUrban
 
-OPERADOR FastShip : username : operadorfastShip contraseña : operadorfastShip
+OPERADOR FastShip : Email : shippingoperadorfastship+clerktest@gmail.com
+                    contraseña : operadorfastShip
 
 Link del deploy : https://proyecto-c-shipping-groovy-music-st.vercel.app/
