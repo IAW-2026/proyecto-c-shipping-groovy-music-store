@@ -31,7 +31,7 @@ export default async function NuevoEnvioPage() {
             Groovy
           </h1>
           <span
-            className="hidden md:inline-block text-primary-foreground/70 text-xs font-medium tracking-[0.3em] border-l border-primary-foreground/30 pl-4 ml-2 uppercase"
+            className="hidden md:inline-block text-primary-foreground text-xs font-medium tracking-[0.3em] border-l border-primary-foreground/60 pl-4 ml-2 uppercase"
             style={{ fontFamily: "'Syne', sans-serif" }}
           >
             Shipping

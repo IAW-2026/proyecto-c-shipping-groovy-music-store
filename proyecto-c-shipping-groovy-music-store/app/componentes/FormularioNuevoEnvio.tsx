@@ -42,10 +42,11 @@ export default function FormularioNuevoEnvio({ empresas }: { empresas: Empresa[]
 
       {/* SELLER ID */}
       <div>
-        <label className="block text-sm font-semibold uppercase tracking-wider mb-2">
+        <label htmlFor="seller_id" className="block text-sm font-semibold uppercase tracking-wider mb-2">
           ID del Vendedor
         </label>
         <input
+          id="seller_id"
           name="seller_id"
           type="text"
           placeholder="ej: user_abc123"
@@ -58,10 +59,11 @@ export default function FormularioNuevoEnvio({ empresas }: { empresas: Empresa[]
 
       {/* BUYER ID */}
       <div>
-        <label className="block text-sm font-semibold uppercase tracking-wider mb-2">
+        <label htmlFor="buyer_id" className="block text-sm font-semibold uppercase tracking-wider mb-2">
           ID del Comprador
         </label>
         <input
+          id="buyer_id"
           name="buyer_id"
           type="text"
           placeholder="ej: user_xyz789"
@@ -80,8 +82,10 @@ export default function FormularioNuevoEnvio({ empresas }: { empresas: Empresa[]
 
         <div>
           <input
+            id="calle"
             name="calle"
             type="text"
+            aria-label="Calle y número"
             placeholder="Calle y número"
             className="w-full bg-card border border-border rounded-xl py-3 px-4 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
           />
@@ -93,8 +97,10 @@ export default function FormularioNuevoEnvio({ empresas }: { empresas: Empresa[]
         <div className="grid grid-cols-2 gap-4">
           <div>
             <input
+              id="ciudad"
               name="ciudad"
               type="text"
+              aria-label="Ciudad"
               placeholder="Ciudad"
               className="w-full bg-card border border-border rounded-xl py-3 px-4 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
             />
@@ -104,8 +110,10 @@ export default function FormularioNuevoEnvio({ empresas }: { empresas: Empresa[]
           </div>
           <div>
             <input
+              id="provincia"
               name="provincia"
               type="text"
+              aria-label="Provincia"
               placeholder="Provincia"
               className="w-full bg-card border border-border rounded-xl py-3 px-4 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
             />
@@ -118,8 +126,10 @@ export default function FormularioNuevoEnvio({ empresas }: { empresas: Empresa[]
         <div className="grid grid-cols-2 gap-4">
           <div>
             <input
+              id="cod_postal"
               name="cod_postal"
               type="text"
+              aria-label="Código postal"
               placeholder="Código postal"
               className="w-full bg-card border border-border rounded-xl py-3 px-4 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
             />
@@ -129,8 +139,10 @@ export default function FormularioNuevoEnvio({ empresas }: { empresas: Empresa[]
           </div>
           <div>
             <input
+              id="pais"
               name="pais"
               type="text"
+              aria-label="País"
               placeholder="País"
               defaultValue="Argentina"
               className="w-full bg-card border border-border rounded-xl py-3 px-4 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
@@ -141,10 +153,11 @@ export default function FormularioNuevoEnvio({ empresas }: { empresas: Empresa[]
 
       {/* EMPRESA — selector con las empresas traídas desde la BD */}
       <div>
-        <label className="block text-sm font-semibold uppercase tracking-wider mb-2">
+        <label htmlFor="empresaId" className="block text-sm font-semibold uppercase tracking-wider mb-2">
           Empresa de logística
         </label>
         <select
+          id="empresaId"
           name="empresaId"
           className="w-full bg-card border border-border rounded-xl py-3 px-4 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
         >
@@ -161,10 +174,11 @@ export default function FormularioNuevoEnvio({ empresas }: { empresas: Empresa[]
 
       {/* FECHA ESTIMADA — campo obligatorio */}
       <div>
-        <label className="block text-sm font-semibold uppercase tracking-wider mb-2">
+        <label htmlFor="fecha_entrega_estimada" className="block text-sm font-semibold uppercase tracking-wider mb-2">
           Fecha de entrega estimada
         </label>
         <input
+          id="fecha_entrega_estimada"
           name="fecha_entrega_estimada"
           type="date"
           className="w-full bg-card border border-border rounded-xl py-3 px-4 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"

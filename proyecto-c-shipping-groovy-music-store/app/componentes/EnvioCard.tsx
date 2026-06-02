@@ -133,7 +133,7 @@ export default function EnvioCard({ envio }: { envio: any }) {
             </p>
             {/* Solo se muestra si el envío tiene fecha estimada cargada */}
             {envio.fecha_entrega_estimada && (
-              <p className="text-xs text-primary font-semibold mt-1">
+              <p className="text-xs text-foreground font-semibold mt-1">
                 Entrega estimada:{" "}
                 {new Date(envio.fecha_entrega_estimada).toLocaleDateString("es-AR", {
                   day: "numeric",

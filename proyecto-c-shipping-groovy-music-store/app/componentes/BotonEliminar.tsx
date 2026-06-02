@@ -71,7 +71,7 @@ export default function BotonEliminar({ envioId }: BotonEliminarProps) {
       <button
         onClick={abrirModal}
         disabled={isPending}
-        className={`px-4 py-2 bg-red-500/10 hover:bg-red-600 text-red-600 hover:text-white border border-red-200/40 hover:border-red-600 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider shadow-sm ${
+        className={`px-4 py-2 bg-red-100 hover:bg-red-700 text-red-800 hover:text-white border border-red-300 hover:border-red-700 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider shadow-sm ${
           isPending ? "opacity-50 cursor-not-allowed" : "hover:scale-105 active:scale-95"
         }`}
       >
