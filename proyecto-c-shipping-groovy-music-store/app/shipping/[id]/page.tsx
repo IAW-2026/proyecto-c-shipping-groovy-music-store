@@ -52,15 +52,15 @@ export default async function DetalleEnvioPage({
             Groovy
           </h1>
           <span
-            className="hidden md:inline-block text-primary-foreground/70 text-xs font-medium tracking-[0.3em] border-l border-primary-foreground/30 pl-4 ml-2 uppercase"
+            className="hidden md:inline-block text-primary-foreground text-xs font-medium tracking-[0.3em] border-l border-primary-foreground/60 pl-4 ml-2 uppercase"
             style={{ fontFamily: "'Syne', sans-serif" }}
           >
             Shipping
           </span>
         </div>
-        <div className="flex items-center gap-3 pl-4 border-l border-primary-foreground/30">
+        <div className="flex items-center gap-3 pl-4 border-l border-primary-foreground/60">
           <div
-            className="hidden sm:flex items-center text-xs font-semibold bg-primary-foreground/20 px-3 py-1 rounded-full uppercase tracking-wider"
+            className="hidden sm:flex items-center text-xs font-semibold bg-black/30 px-3 py-1 rounded-full uppercase tracking-wider"
             style={{ fontFamily: "'DM Sans', sans-serif" }}
           >
             {isAdmin ? "Admin" : "Operador"}
