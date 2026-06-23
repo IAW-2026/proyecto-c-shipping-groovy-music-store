@@ -32,6 +32,7 @@ export async function GET(req: NextRequest) {
 
   const envio = await prisma.envio.findUnique({
     where: { order_id: orderId },
+    include: { empresa: true },
   });
 
   if (!envio) {
@@ -46,6 +47,10 @@ export async function GET(req: NextRequest) {
     codigoSeguimiento: envio.codigo_seguimiento,
     estado: envio.estado.toLowerCase(),
     fechaEntregaEstimada: envio.fecha_entrega_estimada,
+    empresa: {
+      id: envio.empresa.id,
+      nombre: envio.empresa.nombre,
+    },
   });
 }
 
@@ -102,7 +107,7 @@ export async function POST(req: NextRequest) {
           codigo_seguimiento: generarCodigoSeguimiento(),
           fecha_entrega_estimada: calcularFechaEstimada(),
           estado: "EN PREPARACIÓN",
-          direccion_id: dirDestino.id,
+          direccion_destino_id: dirDestino.id,
           empresaId: empresa.id,
         },
       });

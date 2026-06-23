@@ -2,160 +2,173 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requiereAuth } from "@/lib/auth-api";
 
-// Detalle completo de un envío con historial (Control Plane / Analytics)
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const authResult = await requiereAuth(req);
-  if ("error" in authResult) {
-    return NextResponse.json(authResult.error, { status: authResult.status });
-  }
-
-  try {
-    const { id } = await params;
-
-    const envio = await prisma.envio.findUnique({
-      where: { id },
-      include: {
-        direccion: true,
-        empresa: true,
-        eventos: { orderBy: { timestamp: "desc" } },
-      },
-    });
-
-    if (!envio) {
-      return NextResponse.json({ error: "Envío no encontrado" }, { status: 404 });
-    }
-
-    return NextResponse.json({
-      id: envio.id,
-      order_id: envio.order_id,
-      codigo_seguimiento: envio.codigo_seguimiento,
-      estado: envio.estado,
-      seller_id: envio.seller_id,
-      buyer_id: envio.buyer_id,
-      fecha_entrega_estimada: envio.fecha_entrega_estimada,
-      empresa: {
-        id: envio.empresa.id,
-        nombre: envio.empresa.nombre,
-      },
-      direccion: {
-        calle: envio.direccion.calle,
-        ciudad: envio.direccion.ciudad,
-        provincia: envio.direccion.provincia,
-        cod_postal: envio.direccion.cod_postal,
-        pais: envio.direccion.pais,
-      },
-      eventos: envio.eventos.map((e) => ({
-        id: e.id,
-        descripcion: e.descripcion,
-        timestamp: e.timestamp,
-      })),
-    });
-  } catch (error) {
-    console.error("Error al obtener detalle:", error);
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
-  }
+function generarCodigoSeguimiento(): string {
+  const timestamp = Date.now().toString().slice(-6);
+  return `GRV-${timestamp}`;
 }
 
-// Editar envío desde Control Plane (estado, empresa, dirección, etc.)
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+function calcularFechaEstimada(): Date {
+  const dias = Math.floor(Math.random() * 5) + 3;
+  const fecha = new Date();
+  fecha.setDate(fecha.getDate() + dias);
+  return fecha;
+}
+
+// Consultar envío por orderId (Buyer → Shipping, endpoint #8)
+export async function GET(req: NextRequest) {
   const authResult = await requiereAuth(req);
   if ("error" in authResult) {
     return NextResponse.json(authResult.error, { status: authResult.status });
   }
 
-  // Solo admin o servicio pueden editar
-  const ctx = authResult.ctx;
-  if (ctx.tipo === "usuario" && ctx.role !== "ADMIN") {
-    return NextResponse.json({ error: "sin_permisos" }, { status: 403 });
+  const orderId = req.nextUrl.searchParams.get("orderId");
+
+  if (!orderId) {
+    return NextResponse.json(
+      { error: "orden_requerida", mensaje: "El parámetro orderId es requerido" },
+      { status: 400 }
+    );
+  }
+
+  const envio = await prisma.envio.findUnique({
+    where: { order_id: orderId },
+    include: {
+      empresa: true,
+      direccionDestino: true,
+      direccionOrigen: true,
+    },
+  });
+
+  if (!envio) {
+    return NextResponse.json(
+      { error: "envio_no_encontrado", mensaje: "No se encontró un envío para esa orden" },
+      { status: 404 }
+    );
+  }
+
+  return NextResponse.json({
+    id: envio.order_id,
+    codigoSeguimiento: envio.codigo_seguimiento,
+    estado: envio.estado.toLowerCase(),
+    fechaEntregaEstimada: envio.fecha_entrega_estimada,
+    empresa: {
+      id: envio.empresa.id,
+      nombre: envio.empresa.nombre,
+    },
+    direccionDestino: {
+      calle: envio.direccionDestino.calle,
+      ciudad: envio.direccionDestino.ciudad,
+      provincia: envio.direccionDestino.provincia,
+      cod_postal: envio.direccionDestino.cod_postal,
+      pais: envio.direccionDestino.pais,
+    },
+    // Opcional: solo presente si el seller la mandó
+    ...(envio.direccionOrigen && {
+      direccionOrigen: {
+        calle: envio.direccionOrigen.calle,
+        ciudad: envio.direccionOrigen.ciudad,
+        provincia: envio.direccionOrigen.provincia,
+        cod_postal: envio.direccionOrigen.cod_postal,
+        pais: envio.direccionOrigen.pais,
+      },
+    }),
+  });
+}
+
+// Crear envío (Seller → Shipping, endpoint #10)
+export async function POST(req: NextRequest) {
+  const authResult = await requiereAuth(req);
+  if ("error" in authResult) {
+    return NextResponse.json(authResult.error, { status: authResult.status });
+  }
+
+  const body = await req.json();
+  const { order_id, seller_id, buyer_id, direccionDestino, direccionOrigen } = body;
+
+  if (!order_id || !seller_id || !buyer_id || !direccionDestino) {
+    return NextResponse.json(
+      {
+        error: "campos_requeridos",
+        mensaje: "Faltan campos obligatorios (order_id, seller_id, buyer_id, direccionDestino)",
+      },
+      { status: 400 }
+    );
   }
 
   try {
-    const { id } = await params;
-    const body = await req.json();
+    const result = await prisma.$transaction(async (tx) => {
+      const empresa = await tx.empresa.findFirst();
+      if (!empresa) throw new Error("sin_empresa");
 
-    const envioActual = await prisma.envio.findUnique({ where: { id } });
-    if (!envioActual) {
-      return NextResponse.json({ error: "Envío no encontrado" }, { status: 404 });
-    }
-
-    // Campos editables
-    const dataUpdate: any = {};
-    if (body.estado) {
-      const estadosValidos = ["EN PREPARACIÓN", "EN CAMINO", "ENTREGADO"];
-      if (!estadosValidos.includes(body.estado)) {
-        return NextResponse.json({ error: "Estado inválido" }, { status: 400 });
-      }
-      dataUpdate.estado = body.estado;
-    }
-    if (body.empresaId) dataUpdate.empresaId = body.empresaId;
-    if (body.fecha_entrega_estimada) dataUpdate.fecha_entrega_estimada = new Date(body.fecha_entrega_estimada);
-
-    const envio = await prisma.$transaction(async (tx) => {
-      const updated = await tx.envio.update({
-        where: { id },
-        data: dataUpdate,
+      // Crear dirección destino (obligatoria)
+      const dirDestino = await tx.direccion.create({
+        data: {
+          calle: direccionDestino.calle ?? "Sin especificar",
+          ciudad: direccionDestino.ciudad ?? "Sin especificar",
+          provincia: direccionDestino.provincia ?? "Sin especificar",
+          cod_postal: direccionDestino.cod_postal ?? "0000",
+          pais: direccionDestino.pais ?? "Argentina",
+        },
       });
 
-      if (body.estado && body.estado !== envioActual.estado) {
-        await tx.eventoDeEnvio.create({
+      // Crear dirección origen (opcional)
+      let dirOrigenId: string | undefined;
+      if (direccionOrigen) {
+        const dirOrigen = await tx.direccion.create({
           data: {
-            envio_id: updated.id,
-            descripcion: `Estado actualizado a: ${body.estado} (Control Plane)`,
+            calle: direccionOrigen.calle ?? "Sin especificar",
+            ciudad: direccionOrigen.ciudad ?? "Sin especificar",
+            provincia: direccionOrigen.provincia ?? "Sin especificar",
+            cod_postal: direccionOrigen.cod_postal ?? "0000",
+            pais: direccionOrigen.pais ?? "Argentina",
           },
         });
+        dirOrigenId = dirOrigen.id;
       }
 
-      return updated;
+      const envio = await tx.envio.create({
+        data: {
+          order_id,
+          seller_id,
+          buyer_id,
+          codigo_seguimiento: generarCodigoSeguimiento(),
+          fecha_entrega_estimada: calcularFechaEstimada(),
+          estado: "EN PREPARACIÓN",
+          direccion_destino_id: dirDestino.id,
+          ...(dirOrigenId && { direccion_origen_id: dirOrigenId }),
+          empresaId: empresa.id,
+        },
+      });
+
+      await tx.eventoDeEnvio.create({
+        data: {
+          envio_id: envio.id,
+          descripcion: "Envío creado - EN PREPARACIÓN",
+        },
+      });
+
+      return envio;
     });
 
-    return NextResponse.json({
-      id: envio.id,
-      estado: envio.estado,
-      order_id: envio.order_id,
-    });
-  } catch (error) {
-    console.error("Error al editar envío:", error);
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
-  }
-}
-
-// Eliminar envío desde Control Plane
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const authResult = await requiereAuth(req);
-  if ("error" in authResult) {
-    return NextResponse.json(authResult.error, { status: authResult.status });
-  }
-
-  const ctx = authResult.ctx;
-  if (ctx.tipo === "usuario" && ctx.role !== "ADMIN") {
-    return NextResponse.json({ error: "sin_permisos" }, { status: 403 });
-  }
-
-  try {
-    const { id } = await params;
-
-    const envio = await prisma.envio.findUnique({ where: { id } });
-    if (!envio) {
-      return NextResponse.json({ error: "Envío no encontrado" }, { status: 404 });
+    return NextResponse.json(
+      {
+        envioId: result.id,
+        codigoSeguimiento: result.codigo_seguimiento,
+        estado: "creado",
+      },
+      { status: 201 }
+    );
+  } catch (error: any) {
+    if (error.message === "sin_empresa") {
+      return NextResponse.json(
+        { error: "sin_empresa", mensaje: "No hay empresas registradas" },
+        { status: 500 }
+      );
     }
-
-    await prisma.$transaction(async (tx) => {
-      await tx.eventoDeEnvio.deleteMany({ where: { envio_id: id } });
-      await tx.envio.delete({ where: { id } });
-    });
-
-    return NextResponse.json({ estado: "eliminado", id });
-  } catch (error) {
-    console.error("Error al eliminar envío:", error);
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    console.error("Error al crear envío:", error);
+    return NextResponse.json(
+      { error: "error_interno", mensaje: "No se pudo crear el envío" },
+      { status: 500 }
+    );
   }
 }

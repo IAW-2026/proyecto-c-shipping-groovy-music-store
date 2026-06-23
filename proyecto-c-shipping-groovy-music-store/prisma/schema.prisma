@@ -23,28 +23,31 @@ model Usuario {
 }
 
 model Direccion {
-  id         String  @id @default(uuid())
-  calle      String
-  ciudad     String
-  provincia  String
-  cod_postal String
-  pais       String
-  envios     Envio[]
+  id            String  @id @default(uuid())
+  calle         String
+  ciudad        String
+  provincia     String
+  cod_postal    String
+  pais          String
+  enviosDestino Envio[] @relation("DireccionDestino")
+  enviosOrigen  Envio[] @relation("DireccionOrigen")
 }
 
 model Envio {
-  id           String          @id @default(uuid())
-  order_id     String          @unique
-  codigo_seguimiento String    @unique
+  id                     String          @id @default(uuid())
+  order_id               String          @unique
+  codigo_seguimiento     String          @unique
   fecha_entrega_estimada DateTime
-  seller_id    String
-  buyer_id     String
-  direccion_id String
-  estado       String
-  empresaId    String
-  direccion    Direccion       @relation(fields: [direccion_id], references: [id])
-  empresa      Empresa         @relation("EmpresaGestiona", fields: [empresaId], references: [id])
-  eventos      EventoDeEnvio[]
+  seller_id              String
+  buyer_id               String
+  direccion_destino_id   String
+  direccion_origen_id    String?
+  estado                 String
+  empresaId              String
+  direccionDestino       Direccion       @relation("DireccionDestino", fields: [direccion_destino_id], references: [id])
+  direccionOrigen        Direccion?      @relation("DireccionOrigen", fields: [direccion_origen_id], references: [id])
+  empresa                Empresa         @relation("EmpresaGestiona", fields: [empresaId], references: [id])
+  eventos                EventoDeEnvio[]
 }
 
 model EventoDeEnvio {
