@@ -8,10 +8,12 @@ function calcularCosto(peso: number, distancia: number): number {
   return Math.round(BASE + peso * POR_KG + distancia * POR_KM);
 }
 
-function calcularDias(distancia: number): number {
-  if (distancia < 500) return 3;
-  if (distancia < 1000) return 5;
-  return 7;
+// Devuelve la fecha estimada de entrega en ISO 8601 (UTC)
+function calcularFechaEstimada(distancia: number): string {
+  const dias = distancia < 500 ? 3 : distancia < 1000 ? 5 : 7;
+  const fecha = new Date();
+  fecha.setDate(fecha.getDate() + dias);
+  return fecha.toISOString();
 }
 
 function estimarDistancia(origenCp: number, destinoCp: number): number {
@@ -41,6 +43,6 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     costo: calcularCosto(Number(peso), distancia),
-    fechaEntregaEstimada: calcularDias(distancia),
+    fechaEntregaEstimada: calcularFechaEstimada(distancia),
   });
 }

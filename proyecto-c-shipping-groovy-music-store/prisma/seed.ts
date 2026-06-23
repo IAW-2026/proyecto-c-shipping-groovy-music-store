@@ -79,42 +79,53 @@ async function main() {
     data: { calle: "Rivadavia 1010", ciudad: "Mar del Plata", provincia: "Buenos Aires", cod_postal: "7600", pais: "Argentina" },
   });
 
-  // EN CAMINO → fecha estimada en 2-3 días
+  // Direcciones de origen (desde donde sale el paquete)
+  const origen1 = await prisma.direccion.create({
+    data: { calle: "Av. Corrientes 1234", ciudad: "Buenos Aires", provincia: "CABA", cod_postal: "1043", pais: "Argentina" },
+  });
+  const origen2 = await prisma.direccion.create({
+    data: { calle: "San Luis 890", ciudad: "Rosario", provincia: "Santa Fe", cod_postal: "2000", pais: "Argentina" },
+  });
+  const origen3 = await prisma.direccion.create({
+    data: { calle: "Colón 550", ciudad: "Córdoba", provincia: "Córdoba", cod_postal: "5000", pais: "Argentina" },
+  });
+
   const envio1 = await prisma.envio.create({
     data: {
       codigo_seguimiento: "GRV-0001",
       order_id: "550e8400-e29b-41d4-a716-446655440001",
       seller_id: "user_seller_a1b2c3d4",
       buyer_id: "user_buyer_x9y8z7w6",
-      direccion_id: direccion1.id,
+      direccion_destino_id: direccion1.id,
+      direccion_origen_id: origen1.id,
       estado: "EN CAMINO",
       empresaId: fastShip.id,
       fecha_entrega_estimada: new Date("2026-06-02T00:00:00Z"),
     },
   });
 
-  // ENTREGADO → fecha estimada en el pasado
   const envio2 = await prisma.envio.create({
     data: {
       codigo_seguimiento: "GRV-0002",
       order_id: "550e8400-e29b-41d4-a716-446655440002",
       seller_id: "user_seller_e5f6g7h8",
       buyer_id: "user_buyer_v5u4t3s2",
-      direccion_id: direccion2.id,
+      direccion_destino_id: direccion2.id,
+      direccion_origen_id: origen2.id,
       estado: "ENTREGADO",
       empresaId: groovy.id,
       fecha_entrega_estimada: new Date("2026-05-20T00:00:00Z"),
     },
   });
 
-  // EN PREPARACIÓN → fecha estimada en 6-7 días
   const envio3 = await prisma.envio.create({
     data: {
       codigo_seguimiento: "GRV-0003",
       order_id: "550e8400-e29b-41d4-a716-446655440003",
       seller_id: "user_seller_i9j0k1l2",
       buyer_id: "user_buyer_r1q2p3o4",
-      direccion_id: direccion3.id,
+      direccion_destino_id: direccion3.id,
+      // Sin origen — el seller no lo informó
       estado: "EN PREPARACIÓN",
       empresaId: urban.id,
       fecha_entrega_estimada: new Date("2026-06-07T00:00:00Z"),
@@ -127,7 +138,8 @@ async function main() {
       order_id: "550e8400-e29b-41d4-a716-446655440004",
       seller_id: "user_seller_m3n4o5p6",
       buyer_id: "user_buyer_m5n6o7p8",
-      direccion_id: direccion4.id,
+      direccion_destino_id: direccion4.id,
+      direccion_origen_id: origen3.id,
       estado: "EN CAMINO",
       empresaId: fastShip.id,
       fecha_entrega_estimada: new Date("2026-06-03T00:00:00Z"),
@@ -140,7 +152,8 @@ async function main() {
       order_id: "550e8400-e29b-41d4-a716-446655440005",
       seller_id: "user_seller_q1w2e3r4",
       buyer_id: "user_buyer_a1s2d3f4",
-      direccion_id: direccion5.id,
+      direccion_destino_id: direccion5.id,
+      direccion_origen_id: origen1.id,
       estado: "ENTREGADO",
       empresaId: groovy.id,
       fecha_entrega_estimada: new Date("2026-05-15T00:00:00Z"),
@@ -153,7 +166,8 @@ async function main() {
       order_id: "550e8400-e29b-41d4-a716-446655440006",
       seller_id: "user_seller_z1x2c3v4",
       buyer_id: "user_buyer_p1o2i3u4",
-      direccion_id: direccion6.id,
+      direccion_destino_id: direccion6.id,
+      // Sin origen
       estado: "EN PREPARACIÓN",
       empresaId: urban.id,
       fecha_entrega_estimada: new Date("2026-06-08T00:00:00Z"),
@@ -166,7 +180,8 @@ async function main() {
       order_id: "550e8400-e29b-41d4-a716-446655440007",
       seller_id: "user_seller_t1y2u3i4",
       buyer_id: "user_buyer_l1k2j3h4",
-      direccion_id: direccion7.id,
+      direccion_destino_id: direccion7.id,
+      direccion_origen_id: origen2.id,
       estado: "EN CAMINO",
       empresaId: fastShip.id,
       fecha_entrega_estimada: new Date("2026-06-04T00:00:00Z"),
@@ -179,7 +194,8 @@ async function main() {
       order_id: "550e8400-e29b-41d4-a716-446655440008",
       seller_id: "user_seller_m1n2b3v4",
       buyer_id: "user_buyer_g1f2d3s4",
-      direccion_id: direccion1.id,
+      direccion_destino_id: direccion1.id,
+      direccion_origen_id: origen3.id,
       estado: "ENTREGADO",
       empresaId: fastShip.id,
       fecha_entrega_estimada: new Date("2026-05-25T00:00:00Z"),
@@ -192,7 +208,8 @@ async function main() {
       order_id: "550e8400-e29b-41d4-a716-446655440009",
       seller_id: "user_seller_r1t2y3u4",
       buyer_id: "user_buyer_m1n2b3v4",
-      direccion_id: direccion2.id,
+      direccion_destino_id: direccion2.id,
+      // Sin origen
       estado: "EN PREPARACIÓN",
       empresaId: groovy.id,
       fecha_entrega_estimada: new Date("2026-06-09T00:00:00Z"),
@@ -205,7 +222,8 @@ async function main() {
       order_id: "550e8400-e29b-41d4-a716-446655440010",
       seller_id: "user_seller_c1x2z3a4",
       buyer_id: "user_buyer_q1w2e3r4",
-      direccion_id: direccion3.id,
+      direccion_destino_id: direccion3.id,
+      direccion_origen_id: origen1.id,
       estado: "EN CAMINO",
       empresaId: urban.id,
       fecha_entrega_estimada: new Date("2026-06-05T00:00:00Z"),
