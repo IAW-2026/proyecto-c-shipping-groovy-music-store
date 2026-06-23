@@ -21,8 +21,8 @@ export default async function DetalleEnvioPage({
   const envio = await prisma.envio.findUnique({
     where: { id },
     include: {
-      direccionDestino: true,   // 👈 antes era "direccion"
-      direccionOrigen: true,    // 👈 nuevo
+      direccionDestino: true,  
+      direccionOrigen: true,    
       empresa: true,
       eventos: {
         orderBy: { timestamp: "desc" },

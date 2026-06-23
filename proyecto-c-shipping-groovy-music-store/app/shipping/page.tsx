@@ -14,32 +14,28 @@ export default async function Home(props: {
 
   const user = await getCurrentUser();
 
-  // Si el usuario no existe en la BD lo redirige a la página de sin acceso
   if (!user) {
     redirect("/no-autorizado");
   }
 
   const isAdmin = user?.role === "ADMIN";
 
-  // Lee los parámetros de la URL para filtrado, búsqueda y paginación
   const query = searchParams?.query || "";
   const currentPage = Number(searchParams?.page) || 1;
   const estadoFiltro = searchParams?.estado || "";
   const ITEMS_POR_PAGINA = 5;
 
-  // Filtro base: el admin ve todos los envíos, el operador solo los de su empresa.
-  // Se agregan filtros de búsqueda y estado si están presentes en la URL.
   const baseWhere = {
     ...(isAdmin ? {} : { empresaId: user?.empresaId }),
     ...(query ? { codigo_seguimiento: { contains: query, mode: "insensitive" as const } } : {}),
     ...(estadoFiltro ? { estado: estadoFiltro } : {}),
   };
 
-  // Consulta paginada — trae solo los envíos de la página actual
   const enviosRaw = await prisma.envio.findMany({
     where: baseWhere,
     include: {
-      direccion: true,
+      direccionDestino: true, // 👈 antes era "direccion"
+      direccionOrigen: true,  // 👈 nuevo
       empresa: true,
       eventos: true,
     },
@@ -50,17 +46,14 @@ export default async function Home(props: {
     take: ITEMS_POR_PAGINA,
   });
 
-  // Normaliza el campo estado para unificar variaciones de texto de la BD
   const envios = enviosRaw.map((envio) => ({
     ...envio,
     estado: normalizarEstado(envio.estado),
   }));
 
-  // Cuenta el total de envíos que coinciden con el filtro para calcular las páginas
   const totalEnviosBuscados = await prisma.envio.count({ where: baseWhere });
   const totalPages = Math.ceil(totalEnviosBuscados / ITEMS_POR_PAGINA);
 
-  // Las stats usan un filtro separado para no verse afectadas por la búsqueda activa
   const statsWhere = isAdmin ? {} : { empresaId: user?.empresaId };
   const totalParaStats = await prisma.envio.count({ where: statsWhere });
   const entregados = await prisma.envio.count({ where: { ...statsWhere, estado: "ENTREGADO" } });
@@ -109,7 +102,6 @@ export default async function Home(props: {
       {/* ── CONTENIDO PRINCIPAL ── */}
       <div className="max-w-[1400px] mx-auto px-6 md:px-10 pt-12">
 
-        {/* TÍTULO — el botón de nuevo envío solo es visible para admins */}
         <div className="mb-10">
           <div className="flex items-center justify-between">
             <div>
@@ -141,7 +133,6 @@ export default async function Home(props: {
           </div>
         </div>
 
-        {/* STATS */}
         <div className="mb-10">
           <StatsEnvios
             totalInicial={totalParaStats}
@@ -150,7 +141,6 @@ export default async function Home(props: {
           />
         </div>
 
-        {/* PANEL con buscador, filtros y paginación */}
         <PanelFiltroEnvios
           enviosIniciales={envios}
           totalPages={totalPages}
