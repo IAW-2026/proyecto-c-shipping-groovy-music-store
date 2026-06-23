@@ -1,31 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
+import { requiereAuth } from "@/lib/auth-api";
+import { notificarEstadoEnvio } from "@/lib/notificarBuyer";
+import { notificarEntregaExitosa } from "@/lib/notificarPayments";
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ error: "no_autenticado" }, { status: 401 });
+  const authResult = await requiereAuth(req);
+  if ("error" in authResult) {
+    return NextResponse.json(authResult.error, { status: authResult.status });
   }
 
   try {
     const { id } = await params;
+    const ctx = authResult.ctx;
 
-    const envio = await prisma.envio.findUnique({
-      where: { id },
-    });
+    const envio = await prisma.envio.findUnique({ where: { id } });
 
     if (!envio) {
-      return NextResponse.json(
-        { error: "Envío no encontrado" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Envío no encontrado" }, { status: 404 });
     }
 
-    if (user.role !== "ADMIN" && envio.empresaId !== user.empresaId) {
+    // Si es usuario (no servicio), verificar permisos por empresa
+    if (ctx.tipo === "usuario" && ctx.role !== "ADMIN" && envio.empresaId !== ctx.empresaId) {
       return NextResponse.json({ error: "sin_permisos" }, { status: 403 });
     }
 
@@ -44,82 +43,69 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ error: "no_autenticado" }, { status: 401 });
+  const authResult = await requiereAuth(req);
+  if ("error" in authResult) {
+    return NextResponse.json(authResult.error, { status: authResult.status });
   }
 
   try {
     const { id } = await params;
+    const ctx = authResult.ctx;
     const body = await req.json();
     const { estado } = body;
 
     const estadosValidos = ["EN PREPARACIÓN", "EN CAMINO", "ENTREGADO"];
 
     if (!estado) {
-      return NextResponse.json(
-        { error: "El campo estado es requerido" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "El campo estado es requerido" }, { status: 400 });
     }
 
     if (!estadosValidos.includes(estado)) {
-      return NextResponse.json(
-        { error: "Estado inválido" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Estado inválido" }, { status: 400 });
     }
 
     const envioActual = await prisma.envio.findUnique({ where: { id } });
     if (!envioActual) {
-      return NextResponse.json(
-        { error: "Envío no encontrado" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Envío no encontrado" }, { status: 404 });
     }
 
-    // Un operador solo puede cambiar envíos de su empresa; admin todos
-    if (user.role !== "ADMIN" && envioActual.empresaId !== user.empresaId) {
+    // Si es usuario, verificar permisos por empresa
+    if (ctx.tipo === "usuario" && ctx.role !== "ADMIN" && envioActual.empresaId !== ctx.empresaId) {
       return NextResponse.json({ error: "sin_permisos" }, { status: 403 });
     }
 
-    const envio = await prisma.envio.update({
-      where: { id },
-      data: { estado },
+    // Actualizar estado + crear evento en una transacción
+    const envio = await prisma.$transaction(async (tx) => {
+      const updated = await tx.envio.update({
+        where: { id },
+        data: { estado },
+      });
+
+      await tx.eventoDeEnvio.create({
+        data: {
+          envio_id: updated.id,
+          descripcion: `Estado actualizado a: ${estado}`,
+        },
+      });
+
+      return updated;
     });
 
-    await prisma.eventoDeEnvio.create({
-      data: {
-        envio_id: envio.id,
-        descripcion: `Estado actualizado a: ${estado}`,
-      },
-    });
+    // Notificar a Buyer en cada cambio de estado (endpoint #14)
+    notificarEstadoEnvio({
+      ordenId: envio.order_id,
+      codigoSeguimiento: envio.codigo_seguimiento,
+      estado: envio.estado,
+    }).catch((err) => console.error("Error notificando a Buyer:", err));
 
-    /* Se documenta hasta la etapa 3 donde hay que unir las apis
-    // Si el envío fue entregado, notifica a Payments para liberar los fondos
+    // Si es ENTREGADO, notificar a Payments para liberar fondos (endpoint #12)
     if (estado === "ENTREGADO") {
-      try {
-        const res = await fetch(
-          `${process.env.PAYMENTS_API_URL}/api/payments/delivery-confirmation`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              ordenId: envio.order_id,
-              codigoSeguimiento: envio.codigo_seguimiento,
-              estado: "entregado",
-              entregadoEn: new Date().toISOString(),
-            }),
-          }
-        );
-        const data = await res.json();
-        console.log("Respuesta de Payments:", data);
-      } catch (error) {
-        // Si Payments falla, no interrumpimos el flujo principal
-        console.error("No se pudo notificar a Payments:", error);
-      }
+      notificarEntregaExitosa(
+        envio.order_id,
+        envio.codigo_seguimiento,
+        new Date()
+      ).catch((err) => console.error("Error notificando a Payments:", err));
     }
-    */
 
     return NextResponse.json({
       id: envio.id,

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
+import { requiereAuth } from "@/lib/auth-api";
 
 function generarCodigoSeguimiento(): string {
   const timestamp = Date.now().toString().slice(-6);
@@ -15,7 +14,13 @@ function calcularFechaEstimada(): Date {
   return fecha;
 }
 
+// Consultar envío por orderId (Buyer → Shipping, endpoint #8)
 export async function GET(req: NextRequest) {
+  const authResult = await requiereAuth(req);
+  if ("error" in authResult) {
+    return NextResponse.json(authResult.error, { status: authResult.status });
+  }
+
   const orderId = req.nextUrl.searchParams.get("orderId");
 
   if (!orderId) {
@@ -39,57 +44,98 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     id: envio.order_id,
     codigoSeguimiento: envio.codigo_seguimiento,
-    estado: envio.estado,
+    estado: envio.estado.toLowerCase(),
     fechaEntregaEstimada: envio.fecha_entrega_estimada,
   });
 }
 
+// Crear envío (Seller → Shipping, endpoint #10)
 export async function POST(req: NextRequest) {
+  const authResult = await requiereAuth(req);
+  if ("error" in authResult) {
+    return NextResponse.json(authResult.error, { status: authResult.status });
+  }
+
   const body = await req.json();
-  const { order_id, seller_id, buyer_id, direccionDestino } = body;
+  const { order_id, seller_id, buyer_id, direccionDestino, direccionOrigen } = body;
 
   if (!order_id || !seller_id || !buyer_id || !direccionDestino) {
     return NextResponse.json(
-      { error: "campos_requeridos", mensaje: "Faltan campos obligatorios" },
+      { error: "campos_requeridos", mensaje: "Faltan campos obligatorios (order_id, seller_id, buyer_id, direccionDestino)" },
       { status: 400 }
     );
   }
 
-  //
-  const empresa = await prisma.empresa.findFirst();
-  if (!empresa) {
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const empresa = await tx.empresa.findFirst();
+      if (!empresa) throw new Error("sin_empresa");
+
+      const dirDestino = await tx.direccion.create({
+        data: {
+          calle: direccionDestino.calle ?? "Sin especificar",
+          ciudad: direccionDestino.ciudad ?? "Sin especificar",
+          provincia: direccionDestino.provincia ?? "Sin especificar",
+          cod_postal: direccionDestino.cod_postal ?? "0000",
+          pais: direccionDestino.pais ?? "Argentina",
+        },
+      });
+
+      // Si mandan direccionOrigen la guardamos también (sino queda solo destino)
+      if (direccionOrigen) {
+        await tx.direccion.create({
+          data: {
+            calle: direccionOrigen.calle ?? "Sin especificar",
+            ciudad: direccionOrigen.ciudad ?? "Sin especificar",
+            provincia: direccionOrigen.provincia ?? "Sin especificar",
+            cod_postal: direccionOrigen.cod_postal ?? "0000",
+            pais: direccionOrigen.pais ?? "Argentina",
+          },
+        });
+      }
+
+      const envio = await tx.envio.create({
+        data: {
+          order_id,
+          seller_id,
+          buyer_id,
+          codigo_seguimiento: generarCodigoSeguimiento(),
+          fecha_entrega_estimada: calcularFechaEstimada(),
+          estado: "EN PREPARACIÓN",
+          direccion_id: dirDestino.id,
+          empresaId: empresa.id,
+        },
+      });
+
+      await tx.eventoDeEnvio.create({
+        data: {
+          envio_id: envio.id,
+          descripcion: "Envío creado - EN PREPARACIÓN",
+        },
+      });
+
+      return envio;
+    });
+
     return NextResponse.json(
-      { error: "sin_empresa", mensaje: "No hay empresas registradas" },
+      {
+        envioId: result.id,
+        codigoSeguimiento: result.codigo_seguimiento,
+        estado: "creado",
+      },
+      { status: 201 }
+    );
+  } catch (error: any) {
+    if (error.message === "sin_empresa") {
+      return NextResponse.json(
+        { error: "sin_empresa", mensaje: "No hay empresas registradas" },
+        { status: 500 }
+      );
+    }
+    console.error("Error al crear envío:", error);
+    return NextResponse.json(
+      { error: "error_interno", mensaje: "No se pudo crear el envío" },
       { status: 500 }
     );
   }
-
-  const direccion = await prisma.direccion.create({
-    data: {
-      calle: direccionDestino.calle ?? "Sin especificar",
-      ciudad: direccionDestino.ciudad,
-      provincia: direccionDestino.provincia ?? "Sin especificar",
-      cod_postal: direccionDestino.cod_postal ?? "0000",
-      pais: "Argentina",
-    },
-  });
-
-  const envio = await prisma.envio.create({
-    data: {
-      order_id,
-      seller_id,
-      buyer_id,
-      codigo_seguimiento: generarCodigoSeguimiento(),
-      fecha_entrega_estimada: calcularFechaEstimada(),
-      estado: "EN PREPARACIÓN",
-      direccion_id: direccion.id,
-      empresaId: empresa.id,
-    },
-  });
-
-  return NextResponse.json({
-    envioId: envio.id,
-    codigoSeguimiento: envio.codigo_seguimiento,
-    estado: envio.estado,
-  }, { status: 201 });
 }

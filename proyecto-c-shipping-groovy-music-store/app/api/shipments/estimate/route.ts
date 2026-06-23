@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { requiereAuth } from "@/lib/auth-api";
 
 function calcularCosto(peso: number, distancia: number): number {
   const BASE = 1500;
@@ -18,10 +18,11 @@ function estimarDistancia(origenCp: number, destinoCp: number): number {
   return Math.abs(origenCp - destinoCp) * 0.5;
 }
 
+// Calcular costo de envío (Buyer → Shipping, endpoint #9)
 export async function GET(req: NextRequest) {
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ error: "no_autenticado" }, { status: 401 });
+  const authResult = await requiereAuth(req);
+  if ("error" in authResult) {
+    return NextResponse.json(authResult.error, { status: authResult.status });
   }
 
   const params = req.nextUrl.searchParams;

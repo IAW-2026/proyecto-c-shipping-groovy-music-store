@@ -4,6 +4,7 @@ const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/no-autorizado",
+  "/api/(.*)", // Las APIs validan auth por su cuenta con auth-api.ts
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
