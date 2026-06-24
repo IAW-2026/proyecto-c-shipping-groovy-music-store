@@ -10,7 +10,7 @@ export async function notificarEstadoEnvio(data: {
     // Firmamos un token diciendo "Soy Shipping", usando el secreto de Buyer
     const tokenS2S = jwt.sign(
       { appId: "shipping_app" }, 
-      process.env.BUYER_JWT_SECRET!, // 👈 Usamos el de la app a la que le pegamos
+      process.env.BUYER_JWT_SECRET!, 
       { expiresIn: "5m" } // El token expira rápido por seguridad
     );
 

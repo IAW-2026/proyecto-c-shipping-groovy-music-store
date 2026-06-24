@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
       include: {
         eventos: {
           orderBy: { timestamp: "asc" },
-          take: 1, // Primer evento = creación
+          take: 1, 
         },
       },
     });
