@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requiereAuth } from "@/lib/auth-api";
+import { esAdmin } from "@/lib/roles";
 import { notificarEstadoEnvio } from "@/lib/notificarBuyer";
 import { notificarEntregaExitosa } from "@/lib/notificarPayments";
 
@@ -23,8 +24,7 @@ export async function GET(
       return NextResponse.json({ error: "Envío no encontrado" }, { status: 404 });
     }
 
-    // Si es usuario (no servicio), verificar permisos por empresa
-    if (ctx.tipo === "usuario" && ctx.role !== "ADMIN" && envio.empresaId !== ctx.empresaId) {
+    if (ctx.tipo === "usuario" && !esAdmin(ctx.role) && envio.empresaId !== ctx.empresaId) {
       return NextResponse.json({ error: "sin_permisos" }, { status: 403 });
     }
 
@@ -69,12 +69,10 @@ export async function PATCH(
       return NextResponse.json({ error: "Envío no encontrado" }, { status: 404 });
     }
 
-    // Si es usuario, verificar permisos por empresa
-    if (ctx.tipo === "usuario" && ctx.role !== "ADMIN" && envioActual.empresaId !== ctx.empresaId) {
+    if (ctx.tipo === "usuario" && !esAdmin(ctx.role) && envioActual.empresaId !== ctx.empresaId) {
       return NextResponse.json({ error: "sin_permisos" }, { status: 403 });
     }
 
-    // Actualizar estado + crear evento en una transacción
     const envio = await prisma.$transaction(async (tx) => {
       const updated = await tx.envio.update({
         where: { id },
@@ -91,14 +89,12 @@ export async function PATCH(
       return updated;
     });
 
-    // Notificar a Buyer en cada cambio de estado (endpoint #14)
     notificarEstadoEnvio({
       ordenId: envio.order_id,
       codigoSeguimiento: envio.codigo_seguimiento,
       estado: envio.estado,
     }).catch((err) => console.error("Error notificando a Buyer:", err));
 
-    // Si es ENTREGADO, notificar a Payments para liberar fondos (endpoint #12)
     if (estado === "ENTREGADO") {
       notificarEntregaExitosa(
         envio.order_id,
