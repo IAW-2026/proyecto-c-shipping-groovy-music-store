@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requiereAuth } from "@/lib/auth-api";
+import { esAdmin } from "@/lib/roles";
 
 // Detalle de una empresa
 export async function GET(
@@ -53,7 +54,7 @@ export async function PATCH(
   }
 
   const ctx = authResult.ctx;
-  if (ctx.tipo === "usuario" && ctx.role !== "ADMIN") {
+  if (ctx.tipo === "usuario" && !esAdmin(ctx.role)) {
     return NextResponse.json({ error: "sin_permisos" }, { status: 403 });
   }
 
@@ -94,7 +95,7 @@ export async function DELETE(
   }
 
   const ctx = authResult.ctx;
-  if (ctx.tipo === "usuario" && ctx.role !== "ADMIN") {
+  if (ctx.tipo === "usuario" && !esAdmin(ctx.role)) {
     return NextResponse.json({ error: "sin_permisos" }, { status: 403 });
   }
 

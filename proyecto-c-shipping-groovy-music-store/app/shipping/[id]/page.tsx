@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { esAdmin } from "@/lib/roles";
 import { normalizarEstado } from "@/lib/utils";
 import { UserButton } from "@clerk/nextjs";
 import Link from "next/link";
@@ -14,24 +15,22 @@ export default async function DetalleEnvioPage({
   const { id } = await params;
   const user = await getCurrentUser();
 
+  // El middleware ya protegió, esto es fallback
   if (!user) redirect("/no-autorizado");
 
-  const isAdmin = user.role === "ADMIN";
+  const isAdmin = esAdmin(user.role);
 
   const envio = await prisma.envio.findUnique({
     where: { id },
     include: {
-      direccionDestino: true,  
-      direccionOrigen: true,    
+      direccionDestino: true,
+      direccionOrigen: true,
       empresa: true,
-      eventos: {
-        orderBy: { timestamp: "desc" },
-      },
+      eventos: { orderBy: { timestamp: "desc" } },
     },
   });
 
   if (!envio) notFound();
-
   if (!isAdmin && envio.empresaId !== user.empresaId) redirect("/no-autorizado");
 
   const estado = normalizarEstado(envio.estado);

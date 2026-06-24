@@ -4,15 +4,15 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
 import { getCurrentUser } from "@/lib/auth";
+import { esAdmin } from "@/lib/roles";
 
-// Elimina un envío y todos sus eventos asociados de la base de datos.
-// Borra primero los eventos para evitar errores de foreign key.
+// Elimina un envío y todos sus eventos asociados
 export async function eliminarEnvio(id: string) {
   const user = await getCurrentUser();
   if (!user) {
     return { success: false, error: "No autenticado." };
   }
-  if (user.role !== "ADMIN") {
+  if (!esAdmin(user.role)) {
     return { success: false, error: "Solo un administrador puede eliminar envíos." };
   }
 
@@ -27,15 +27,13 @@ export async function eliminarEnvio(id: string) {
   }
 }
 
-// Crea un nuevo envío desde el formulario interno del admin.
-// El formulario captura la dirección de destino. La de origen es opcional
-// en el form interno (la manda Seller cuando llama a POST /api/shipments).
+// Crea un nuevo envío desde el formulario interno del admin
 export async function crearEnvio(formData: FormData) {
   const user = await getCurrentUser();
   if (!user) {
     return { success: false, errores: { general: "No autenticado." } };
   }
-  if (user.role !== "ADMIN") {
+  if (!esAdmin(user.role)) {
     return { success: false, errores: { general: "Solo un administrador puede crear envíos." } };
   }
 
@@ -74,7 +72,6 @@ export async function crearEnvio(formData: FormData) {
 
     const codigo_seguimiento = `GRV-${String(ultimoNumero).padStart(4, "0")}`;
 
-    // Crea la dirección de destino (única que captura el form interno)
     const direccionDestino = await prisma.direccion.create({
       data: { calle, ciudad, provincia, cod_postal, pais: pais || "Argentina" },
     });
@@ -85,7 +82,7 @@ export async function crearEnvio(formData: FormData) {
         codigo_seguimiento,
         seller_id,
         buyer_id,
-        direccion_destino_id: direccionDestino.id, 
+        direccion_destino_id: direccionDestino.id,
         estado: "EN PREPARACIÓN",
         empresaId,
         fecha_entrega_estimada: new Date(fecha_raw),

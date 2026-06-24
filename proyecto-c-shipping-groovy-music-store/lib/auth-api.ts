@@ -3,10 +3,11 @@ import { auth } from "@clerk/nextjs/server";
 import { verifyToken } from "@clerk/backend";
 import jwt from "jsonwebtoken";
 import { prisma } from "@/lib/prisma";
+import { extraerRol, extraerEmpresaId, type Rol } from "@/lib/roles";
 
 export type ContextoAuth =
   | { tipo: "servicio"; appId: string }
-  | { tipo: "usuario"; userId: string; role: string; empresaId: string | null };
+  | { tipo: "usuario"; userId: string; role: Rol; empresaId: string | null };
 
 // Valida auth de 3 formas: JWT S2S, JWT Clerk (Bearer), o cookie de Clerk (browser).
 export async function autenticarRequest(req: NextRequest): Promise<ContextoAuth | null> {
@@ -21,40 +22,42 @@ export async function autenticarRequest(req: NextRequest): Promise<ContextoAuth 
       return { tipo: "servicio", appId: payloadS2S.appId || "unknown" };
     } catch {}
 
-    // 2) JWT de Clerk enviado como Bearer (Control Plane / Analytics)
+    // 2) JWT de Clerk como Bearer (Control Plane / Analytics)
     try {
       const payloadClerk = await verifyToken(token, {
         secretKey: process.env.CLERK_SECRET_KEY!,
       });
-      const usuario = await prisma.usuario.findUnique({
-        where: { id_clerk: payloadClerk.sub },
-      });
-      if (usuario) {
-        return {
-          tipo: "usuario",
-          userId: usuario.id_clerk,
-          role: usuario.role,
-          empresaId: usuario.empresaId,
-        };
+      const role = extraerRol(payloadClerk);
+      const empresaIdClerk = extraerEmpresaId(payloadClerk);
+
+      let empresaId = empresaIdClerk;
+      if (!empresaId) {
+        const usuarioDb = await prisma.usuario.findUnique({
+          where: { id_clerk: payloadClerk.sub! },
+        });
+        empresaId = usuarioDb?.empresaId ?? null;
       }
+
+      return { tipo: "usuario", userId: payloadClerk.sub!, role, empresaId };
     } catch {}
   }
 
-  // 3) Cookie de sesión de Clerk (llamadas desde el browser / UI propia)
+  // 3) Cookie de sesión de Clerk (browser)
   try {
-    const { userId } = await auth();
+    const { userId, sessionClaims } = await auth();
     if (userId) {
-      const usuario = await prisma.usuario.findUnique({
-        where: { id_clerk: userId },
-      });
-      if (usuario) {
-        return {
-          tipo: "usuario",
-          userId: usuario.id_clerk,
-          role: usuario.role,
-          empresaId: usuario.empresaId,
-        };
+      const role = extraerRol(sessionClaims);
+      const empresaIdClerk = extraerEmpresaId(sessionClaims);
+
+      let empresaId = empresaIdClerk;
+      if (!empresaId) {
+        const usuarioDb = await prisma.usuario.findUnique({
+          where: { id_clerk: userId },
+        });
+        empresaId = usuarioDb?.empresaId ?? null;
       }
+
+      return { tipo: "usuario", userId, role, empresaId };
     }
   } catch {}
 

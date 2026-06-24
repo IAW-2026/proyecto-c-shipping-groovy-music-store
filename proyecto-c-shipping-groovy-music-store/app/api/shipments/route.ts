@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requiereAuth } from "@/lib/auth-api";
+import { esAdmin } from "@/lib/roles";
 
 function generarCodigoSeguimiento(): string {
   const timestamp = Date.now().toString().slice(-6);
@@ -14,44 +15,116 @@ function calcularFechaEstimada(): Date {
   return fecha;
 }
 
-// Consultar envío por orderId (Buyer → Shipping, endpoint #8)
+// GET soporta 2 modos:
+// - ?orderId=xxx → búsqueda por orden (Buyer, endpoint #8)
+// - ?pagina=1&estado=&busqueda= → listado global con paginación (Control Plane)
 export async function GET(req: NextRequest) {
   const authResult = await requiereAuth(req);
   if ("error" in authResult) {
     return NextResponse.json(authResult.error, { status: authResult.status });
   }
 
-  const orderId = req.nextUrl.searchParams.get("orderId");
+  const params = req.nextUrl.searchParams;
+  const orderId = params.get("orderId");
 
-  if (!orderId) {
-    return NextResponse.json(
-      { error: "orden_requerida", mensaje: "El parámetro orderId es requerido" },
-      { status: 400 }
-    );
+  // ── Modo 1: búsqueda por orderId (Buyer → Shipping) ──
+  if (orderId) {
+    const envio = await prisma.envio.findUnique({
+      where: { order_id: orderId },
+      include: { empresa: true, direccionDestino: true, direccionOrigen: true },
+    });
+
+    if (!envio) {
+      return NextResponse.json(
+        { error: "envio_no_encontrado", mensaje: "No se encontró un envío para esa orden" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      id: envio.order_id,
+      codigoSeguimiento: envio.codigo_seguimiento,
+      estado: envio.estado.toLowerCase(),
+      fechaEntregaEstimada: envio.fecha_entrega_estimada,
+      empresa: { id: envio.empresa.id, nombre: envio.empresa.nombre },
+      direccionDestino: {
+        calle: envio.direccionDestino.calle,
+        ciudad: envio.direccionDestino.ciudad,
+        provincia: envio.direccionDestino.provincia,
+        cod_postal: envio.direccionDestino.cod_postal,
+        pais: envio.direccionDestino.pais,
+      },
+      ...(envio.direccionOrigen && {
+        direccionOrigen: {
+          calle: envio.direccionOrigen.calle,
+          ciudad: envio.direccionOrigen.ciudad,
+          provincia: envio.direccionOrigen.provincia,
+          cod_postal: envio.direccionOrigen.cod_postal,
+          pais: envio.direccionOrigen.pais,
+        },
+      }),
+    });
   }
 
-  const envio = await prisma.envio.findUnique({
-    where: { order_id: orderId },
-    include: { empresa: true },
-  });
+  // ── Modo 2: listado global con paginación (Control Plane) ──
+  const pagina = Math.max(1, Number(params.get("pagina")) || 1);
+  const limite = Math.min(50, Math.max(1, Number(params.get("limite")) || 20));
+  const estado = params.get("estado");
+  const busqueda = params.get("busqueda");
+  const empresaId = params.get("empresaId");
 
-  if (!envio) {
-    return NextResponse.json(
-      { error: "envio_no_encontrado", mensaje: "No se encontró un envío para esa orden" },
-      { status: 404 }
-    );
+  const where: any = {};
+  if (estado) where.estado = estado;
+  if (empresaId) where.empresaId = empresaId;
+  if (busqueda) {
+    where.OR = [
+      { codigo_seguimiento: { contains: busqueda, mode: "insensitive" } },
+      { order_id: { contains: busqueda, mode: "insensitive" } },
+      { seller_id: { contains: busqueda, mode: "insensitive" } },
+      { buyer_id: { contains: busqueda, mode: "insensitive" } },
+    ];
   }
 
-  return NextResponse.json({
-    id: envio.order_id,
-    codigoSeguimiento: envio.codigo_seguimiento,
-    estado: envio.estado.toLowerCase(),
-    fechaEntregaEstimada: envio.fecha_entrega_estimada,
-    empresa: {
-      id: envio.empresa.id,
-      nombre: envio.empresa.nombre,
-    },
-  });
+  try {
+    const [envios, total] = await Promise.all([
+      prisma.envio.findMany({
+        where,
+        include: {
+          empresa: { select: { id: true, nombre: true } },
+          direccionDestino: true,
+          direccionOrigen: true,
+        },
+        orderBy: { id: "desc" },
+        skip: (pagina - 1) * limite,
+        take: limite,
+      }),
+      prisma.envio.count({ where }),
+    ]);
+
+    return NextResponse.json({
+      datos: envios.map((e) => ({
+        id: e.id,
+        order_id: e.order_id,
+        codigo_seguimiento: e.codigo_seguimiento,
+        estado: e.estado,
+        seller_id: e.seller_id,
+        buyer_id: e.buyer_id,
+        fecha_entrega_estimada: e.fecha_entrega_estimada,
+        empresa: e.empresa,
+        direccionDestino: e.direccionDestino,
+        ...(e.direccionOrigen && { direccionOrigen: e.direccionOrigen }),
+      })),
+      paginacion: {
+        pagina,
+        limite,
+        total,
+        totalPaginas: Math.ceil(total / limite),
+      },
+    });
+  } catch (error) {
+    console.error("Error al listar envíos:", error);
+    return NextResponse.json({ error: "error_interno", mensaje: "Error al listar envíos" }, { status: 500 });
+  }
 }
 
 // Crear envío (Seller → Shipping, endpoint #10)
@@ -86,9 +159,9 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // Si mandan direccionOrigen la guardamos también (sino queda solo destino)
+      let dirOrigenId: string | undefined;
       if (direccionOrigen) {
-        await tx.direccion.create({
+        const dirOrigen = await tx.direccion.create({
           data: {
             calle: direccionOrigen.calle ?? "Sin especificar",
             ciudad: direccionOrigen.ciudad ?? "Sin especificar",
@@ -97,6 +170,7 @@ export async function POST(req: NextRequest) {
             pais: direccionOrigen.pais ?? "Argentina",
           },
         });
+        dirOrigenId = dirOrigen.id;
       }
 
       const envio = await tx.envio.create({
@@ -108,39 +182,27 @@ export async function POST(req: NextRequest) {
           fecha_entrega_estimada: calcularFechaEstimada(),
           estado: "EN PREPARACIÓN",
           direccion_destino_id: dirDestino.id,
+          ...(dirOrigenId && { direccion_origen_id: dirOrigenId }),
           empresaId: empresa.id,
         },
       });
 
       await tx.eventoDeEnvio.create({
-        data: {
-          envio_id: envio.id,
-          descripcion: "Envío creado - EN PREPARACIÓN",
-        },
+        data: { envio_id: envio.id, descripcion: "Envío creado - EN PREPARACIÓN" },
       });
 
       return envio;
     });
 
     return NextResponse.json(
-      {
-        envioId: result.id,
-        codigoSeguimiento: result.codigo_seguimiento,
-        estado: "creado",
-      },
+      { envioId: result.id, codigoSeguimiento: result.codigo_seguimiento, estado: "creado" },
       { status: 201 }
     );
   } catch (error: any) {
     if (error.message === "sin_empresa") {
-      return NextResponse.json(
-        { error: "sin_empresa", mensaje: "No hay empresas registradas" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "sin_empresa", mensaje: "No hay empresas registradas" }, { status: 500 });
     }
     console.error("Error al crear envío:", error);
-    return NextResponse.json(
-      { error: "error_interno", mensaje: "No se pudo crear el envío" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "error_interno", mensaje: "No se pudo crear el envío" }, { status: 500 });
   }
 }

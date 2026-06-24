@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requiereAuth } from "@/lib/auth-api";
+import { esAdmin } from "@/lib/roles";
 
 // Listar todas las empresas con conteo de envíos
 export async function GET(req: NextRequest) {
@@ -39,7 +40,7 @@ export async function POST(req: NextRequest) {
   }
 
   const ctx = authResult.ctx;
-  if (ctx.tipo === "usuario" && ctx.role !== "ADMIN") {
+  if (ctx.tipo === "usuario" && !esAdmin(ctx.role)) {
     return NextResponse.json({ error: "sin_permisos" }, { status: 403 });
   }
 

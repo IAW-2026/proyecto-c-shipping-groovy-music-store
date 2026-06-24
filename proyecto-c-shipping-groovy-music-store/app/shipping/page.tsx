@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { UserButton } from "@clerk/nextjs";
 import { getCurrentUser } from "@/lib/auth";
+import { esAdmin } from "@/lib/roles";
 import StatsEnvios from "@/app/componentes/StatsEnvios";
 import PanelFiltroEnvios from "@/app/componentes/PanelFiltrosEnvio";
 import { normalizarEstado } from "@/lib/utils";
@@ -13,12 +14,9 @@ export default async function Home(props: {
   const searchParams = await props.searchParams;
 
   const user = await getCurrentUser();
+  if (!user) redirect("/no-autorizado");
 
-  if (!user) {
-    redirect("/no-autorizado");
-  }
-
-  const isAdmin = user?.role === "ADMIN";
+  const isAdmin = esAdmin(user.role);
 
   const query = searchParams?.query || "";
   const currentPage = Number(searchParams?.page) || 1;
@@ -26,7 +24,7 @@ export default async function Home(props: {
   const ITEMS_POR_PAGINA = 5;
 
   const baseWhere = {
-    ...(isAdmin ? {} : { empresaId: user?.empresaId }),
+    ...(isAdmin || !user.empresaId ? {} : { empresaId: user.empresaId }),
     ...(query ? { codigo_seguimiento: { contains: query, mode: "insensitive" as const } } : {}),
     ...(estadoFiltro ? { estado: estadoFiltro } : {}),
   };
@@ -34,14 +32,12 @@ export default async function Home(props: {
   const enviosRaw = await prisma.envio.findMany({
     where: baseWhere,
     include: {
-      direccionDestino: true, // 👈 antes era "direccion"
-      direccionOrigen: true,  // 👈 nuevo
+      direccionDestino: true,
+      direccionOrigen: true,
       empresa: true,
       eventos: true,
     },
-    orderBy: {
-      id: "desc",
-    },
+    orderBy: { id: "desc" },
     skip: (currentPage - 1) * ITEMS_POR_PAGINA,
     take: ITEMS_POR_PAGINA,
   });
@@ -54,7 +50,7 @@ export default async function Home(props: {
   const totalEnviosBuscados = await prisma.envio.count({ where: baseWhere });
   const totalPages = Math.ceil(totalEnviosBuscados / ITEMS_POR_PAGINA);
 
-  const statsWhere = isAdmin ? {} : { empresaId: user?.empresaId };
+  const statsWhere = isAdmin || !user.empresaId ? {} : { empresaId: user.empresaId };
   const totalParaStats = await prisma.envio.count({ where: statsWhere });
   const entregados = await prisma.envio.count({ where: { ...statsWhere, estado: "ENTREGADO" } });
   const enCamino = await prisma.envio.count({ where: { ...statsWhere, estado: "EN CAMINO" } });
