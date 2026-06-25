@@ -89,25 +89,33 @@ export async function PATCH(
       return updated;
     });
 
-    notificarEstadoEnvio({
-      ordenId: envio.order_id,
-      codigoSeguimiento: envio.codigo_seguimiento,
-      estado: envio.estado,
-    }).catch((err) => console.error("Error notificando a Buyer:", err));
+    try {
+  await notificarEstadoEnvio({
+    ordenId: envio.order_id,
+    codigoSeguimiento: envio.codigo_seguimiento,
+    estado: envio.estado,
+  });
+} catch (err) {
+  console.error("Error notificando a Buyer:", err);
+}
 
-    if (estado === "ENTREGADO") {
-      notificarEntregaExitosa(
-        envio.order_id,
-        envio.codigo_seguimiento,
-        new Date()
-      ).catch((err) => console.error("Error notificando a Payments:", err));
-    }
+if (estado === "ENTREGADO") {
+  try {
+    await notificarEntregaExitosa(
+      envio.order_id,
+      envio.codigo_seguimiento,
+      new Date()
+    );
+  } catch (err) {
+    console.error("Error notificando a Payments:", err);
+  }
+}
 
-    return NextResponse.json({
-      id: envio.id,
-      estado: envio.estado,
-      order_id: envio.order_id,
-    });
+return NextResponse.json({
+  id: envio.id,
+  estado: envio.estado,
+  order_id: envio.order_id,
+});
   } catch (error) {
     console.error("Error al actualizar estado:", error);
     return NextResponse.json(

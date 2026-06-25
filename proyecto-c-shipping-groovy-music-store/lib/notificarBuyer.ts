@@ -1,4 +1,3 @@
-// lib/notificarBuyer.ts
 import jwt from "jsonwebtoken";
 
 export async function notificarEstadoEnvio(data: {
@@ -7,11 +6,10 @@ export async function notificarEstadoEnvio(data: {
   estado: string;
 }) {
   try {
-    // Firmamos un token diciendo "Soy Shipping", usando el secreto de Buyer
     const tokenS2S = jwt.sign(
       { appId: "shipping_app" }, 
       process.env.BUYER_JWT_SECRET!, 
-      { expiresIn: "5m" } // El token expira rápido por seguridad
+      { expiresIn: "5m" } 
     );
 
     const res = await fetch(`${process.env.BUYER_API_URL}/api/orders/shipping-status`, {
@@ -21,13 +19,19 @@ export async function notificarEstadoEnvio(data: {
         Authorization: `Bearer ${tokenS2S}`,
       },
       body: JSON.stringify({
-        ordenId: data.ordenId,
-        codigoSeguimiento: data.codigoSeguimiento,
-        estado: data.estado.toLowerCase(),
+        order_id: data.ordenId, 
+        codigo_seguimiento: data.codigoSeguimiento, 
+        estado: data.estado, 
       }),
     });
-    if (!res.ok) console.error("Buyer respondió", res.status);
+    
+    if (!res.ok) {
+        const errorText = await res.text();
+        console.error("La Buyer App rechazó la notificación. Código:", res.status, "Detalle:", errorText);
+    } else {
+        console.log("¡Notificación enviada a Buyer con éxito!");
+    }
   } catch (err) {
-    console.error("No se pudo notificar a Buyer:", err);
+    console.error("No se pudo notificar a Buyer (Error de red):", err);
   }
 }
