@@ -146,7 +146,11 @@ export async function POST(req: NextRequest) {
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      const empresa = await tx.empresa.findFirst();
+            const empresa = await tx.empresa.findFirst({
+        orderBy: {
+          envios: { _count: "asc" },
+        },
+      });
       if (!empresa) throw new Error("sin_empresa");
 
       const dirDestino = await tx.direccion.create({
