@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requiereAuth } from "@/lib/auth-api";
+import { asignarEmpresaPorCp } from "@/lib/asignarEmpresa";
 
 function calcularCosto(peso: number, distancia: number): number {
   const BASE = 1500;
@@ -8,7 +9,6 @@ function calcularCosto(peso: number, distancia: number): number {
   return Math.round(BASE + peso * POR_KG + distancia * POR_KM);
 }
 
-// Devuelve la fecha estimada de entrega en ISO 8601 (UTC)
 function calcularFechaEstimada(distancia: number): string {
   const dias = distancia < 500 ? 3 : distancia < 1000 ? 5 : 7;
   const fecha = new Date();
@@ -40,9 +40,11 @@ export async function GET(req: NextRequest) {
   }
 
   const distancia = estimarDistancia(Number(origenCp), Number(destinoCp));
+  const empresa = await asignarEmpresaPorCp(destinoCp);
 
   return NextResponse.json({
     costo: calcularCosto(Number(peso), distancia),
     fechaEntregaEstimada: calcularFechaEstimada(distancia),
+    empresa: empresa ? { id: empresa.id, nombre: empresa.nombre } : null,
   });
 }
