@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
   try {
     const result = await prisma.$transaction(async (tx) => {
       const empresas = await tx.empresa.findMany({
-        orderBy: { nombre: "asc" },
+        orderBy: { createdAt: "desc" },
         select: { id: true, nombre: true },
       });
       if (empresas.length === 0) throw new Error("sin_empresa");

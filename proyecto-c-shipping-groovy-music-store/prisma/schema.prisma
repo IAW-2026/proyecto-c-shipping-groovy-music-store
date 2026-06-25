@@ -38,6 +38,7 @@ model Envio {
   order_id               String          @unique
   codigo_seguimiento     String          @unique
   fecha_entrega_estimada DateTime
+  createdAt              DateTime        @default(now())
   seller_id              String
   buyer_id               String
   direccion_destino_id   String
