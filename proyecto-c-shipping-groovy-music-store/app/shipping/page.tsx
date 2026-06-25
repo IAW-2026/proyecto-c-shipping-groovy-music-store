@@ -7,6 +7,7 @@ import StatsEnvios from "@/app/componentes/StatsEnvios";
 import PanelFiltroEnvios from "@/app/componentes/PanelFiltrosEnvio";
 import { normalizarEstado } from "@/lib/utils";
 import Link from "next/link";
+import { PollingRefresher } from "@/app/componentes/PollingRefresher";
 
 export default async function Home(props: {
   searchParams: Promise<{ query?: string; page?: string; estado?: string }>;
@@ -57,6 +58,8 @@ export default async function Home(props: {
 
   return (
     <main className="min-h-screen bg-background text-foreground font-sans pb-24">
+      <PollingRefresher />
+
       {/* ── HEADER ── */}
       <header className="bg-primary text-primary-foreground py-4 px-6 md:px-10 flex items-center justify-between shadow-md">
         <div className="flex items-center gap-4">
