@@ -16,14 +16,14 @@
 
   /* Fondos secundarios / hover */
   --muted: #D5D1C8;
-  --muted-foreground: #6D6B66;
+  --muted-foreground: #46443F;
 
   /* Acentos — Terracota */
-  --accent: #E25933;
+  --accent: #B0431D;
   --accent-foreground: #FFFFFF;
 
   /* Primario — Terracota (header, botones activos) */
-  --primary: #E25933;
+  --primary: #B0431D;
   --primary-foreground: #FFFFFF;
 
   /* Secundario — Carbón oscuro (nav bar) */

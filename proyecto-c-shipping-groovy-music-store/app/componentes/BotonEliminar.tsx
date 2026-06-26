@@ -4,23 +4,53 @@ import { useState, useTransition } from "react";
 import { Trash2, AlertTriangle } from "lucide-react";
 import { eliminarEnvio } from "@/app/shipping/acciones";
 
-export default function BotonEliminar({ envioId }: { envioId: string }) {
+/**
+ * Props del componente BotonEliminar.
+ *
+ * @property envioId - UUID del envío que se desea eliminar
+ */
+interface BotonEliminarProps {
+  envioId: string;
+}
+
+/**
+ * BotonEliminar
+ *
+ * Componente cliente que renderiza un botón para finalizar y eliminar un envío.
+ * Al hacer click muestra un modal de confirmación antes de ejecutar la acción.
+ * Utiliza useTransition para deshabilitar la UI mientras la Server Action está en curso.
+ *
+ * @param envioId - UUID del envío a eliminar
+ */
+export default function BotonEliminar({ envioId }: BotonEliminarProps) {
   const [isPending, startTransition] = useTransition();
   const [isOpen, setIsOpen] = useState(false);
 
-  // Funciones para controlar el Modal frenando la propagación (evita redirigir la tarjeta)
+  /**
+   * Abre el modal de confirmación.
+   * Frena la propagación del evento para evitar redirigir la tarjeta padre.
+   */
   const abrirModal = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
     setIsOpen(true);
   };
 
+  /**
+   * Cierra el modal de confirmación.
+   * Frena la propagación del evento para evitar redirigir la tarjeta padre.
+   */
   const cerrarModal = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
     setIsOpen(false);
   };
 
+  /**
+   * Ejecuta la eliminación del envío llamando a la Server Action eliminarEnvio.
+   * Si la acción falla muestra un alert con el mensaje de error.
+   * Si tiene éxito cierra el modal automáticamente.
+   */
   const handleEliminar = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
@@ -37,11 +67,11 @@ export default function BotonEliminar({ envioId }: { envioId: string }) {
 
   return (
     <>
-      {/* ── BOTÓN PRINCIPAL REESTILIZADO ── */}
+      {/* ── BOTÓN PRINCIPAL ── */}
       <button
         onClick={abrirModal}
         disabled={isPending}
-        className={`px-4 py-2 bg-red-500/10 hover:bg-red-600 text-red-600 hover:text-white border border-red-200/40 hover:border-red-600 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider shadow-sm ${
+        className={`px-4 py-2 bg-red-100 hover:bg-red-700 text-red-800 hover:text-white border border-red-300 hover:border-red-700 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider shadow-sm ${
           isPending ? "opacity-50 cursor-not-allowed" : "hover:scale-105 active:scale-95"
         }`}
       >
@@ -49,15 +79,15 @@ export default function BotonEliminar({ envioId }: { envioId: string }) {
         {isPending ? "Finalizando..." : "Finalizar envío"}
       </button>
 
-      {/* ── CARTEL DE CONFIRMACIÓN (MODAL) ── */}
+      {/* ── MODAL DE CONFIRMACIÓN ── */}
       {isOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-opacity duration-300"
-          onClick={cerrarModal} // Si clickean el fondo oscuro, se cierra
+          onClick={cerrarModal}
         >
           <div
-            className="bg-card text-card-foreground border border-border rounded-3xl shadow-2xl w-full max-w-md p-6 relative relative transform scale-100 transition-all duration-300"
-            onClick={(e) => e.stopPropagation()} // Evita que se cierre al hacer click dentro del cartel
+            className="bg-card text-card-foreground border border-border rounded-3xl shadow-2xl w-full max-w-md p-6 relative transform scale-100 transition-all duration-300"
+            onClick={(e) => e.stopPropagation()}
           >
             {/* Cabezal de Advertencia */}
             <div className="flex items-center gap-3 mb-4 text-red-500">
@@ -71,7 +101,9 @@ export default function BotonEliminar({ envioId }: { envioId: string }) {
 
             {/* Cuerpo del Mensaje */}
             <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
-              Esta acción completará el ciclo del paquete y eliminará el registro de forma permanente del panel activo. Asegurate de que haya sido entregado correctamente.
+              Esta acción completará el ciclo del paquete y eliminará el registro
+              de forma permanente del panel activo. Asegurate de que haya sido
+              entregado correctamente.
             </p>
 
             {/* Botonera de Acción */}

@@ -1,36 +1,29 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+Esta es una aplicacion de Shipping de Groovy Music Store 
+En esta app se podra visualizar el estado de los pedidos asi como la fecha en la que se debe entrar 
+y se podra borrar los envios ya entregados 
+A su vez se podra crear envios pero es solo una prueba mientras las apps no esten unidas 
+el administrador debera ingresar los datos mientras tanto 
 
-## Getting Started
+Tambien se puede diferencian los distintos usuarios asignados a sus empresas , estos usuarios solo podran ver 
+los envios asignados a sus empresas mientras que los admin podran ver todos los pedidos y ademas crear mas 
 
-First, run the development server:
+Por razones de seguridad ninguna persona de afuera de la app de shipping tiene permitido el acceso 
+solo se podra entrar a controlar los envios con estos usuarios : 
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+ADMIN : 
+    username : shippingadmin
+    contraseña : shippingadmin
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+OPERADOR Groovy : 
+    username : operadorgroovy24
+    contraseña : operadorgroovy24
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+OPERADOR Urban : 
+    username : operadorUrban
+    contraseña : operadorUrban
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+OPERADOR FastShip : 
+    username : operadorfastShip
+    contraseña : operadorfastShip
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Link del deploy : https://proyecto-c-shipping-groovy-music-st.vercel.app/
