@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requiereAuth } from "@/lib/auth-api";
 import { esAdmin } from "@/lib/roles";
+import { notificarEstadoEnvio } from "@/lib/notificarBuyer";
 
 function generarCodigoSeguimiento(): string {
   const timestamp = Date.now().toString().slice(-6);
@@ -199,6 +200,19 @@ export async function POST(req: NextRequest) {
 
       return envio;
     });
+
+    // Notificar al Buyer que el envío fue creado y está EN PREPARACIÓN
+    // (se mapea internamente a "Pendiente de envio" en notificarEstadoEnvio)
+    try {
+      await notificarEstadoEnvio({
+        ordenId: result.order_id,
+        codigoSeguimiento: result.codigo_seguimiento,
+        estado: "EN PREPARACIÓN",
+      });
+    } catch (err) {
+      console.error("[POST /api/shipments] Error notificando a Buyer:", err);
+      // no rompemos el flujo principal: el envío ya fue creado
+    }
 
     return NextResponse.json(
       { envioId: result.id, codigoSeguimiento: result.codigo_seguimiento, estado: "creado" },
