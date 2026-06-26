@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { esAdmin } from "@/lib/roles";
 import { normalizarEstado } from "@/lib/utils";
 import { UserButton } from "@clerk/nextjs";
 import Link from "next/link";
@@ -14,24 +15,22 @@ export default async function DetalleEnvioPage({
   const { id } = await params;
   const user = await getCurrentUser();
 
+  // El middleware ya protegió, esto es fallback
   if (!user) redirect("/no-autorizado");
 
-  const isAdmin = user.role === "ADMIN";
+  const isAdmin = esAdmin(user.role);
 
   const envio = await prisma.envio.findUnique({
     where: { id },
     include: {
-      direccion: true,
+      direccionDestino: true,
+      direccionOrigen: true,
       empresa: true,
-      eventos: {
-        orderBy: { timestamp: "desc" },
-      },
+      eventos: { orderBy: { timestamp: "desc" } },
     },
   });
 
   if (!envio) notFound();
-
-  // El operador no puede ver envíos de otra empresa
   if (!isAdmin && envio.empresaId !== user.empresaId) redirect("/no-autorizado");
 
   const estado = normalizarEstado(envio.estado);
@@ -121,7 +120,7 @@ export default async function DetalleEnvioPage({
             </div>
           </div>
 
-          {/* DIRECCIÓN */}
+          {/* DIRECCIÓN DESTINO */}
           <div className="bg-card border border-border rounded-2xl p-6">
             <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
               Dirección de entrega
@@ -129,16 +128,37 @@ export default async function DetalleEnvioPage({
             <div className="flex items-start gap-2">
               <MapPin size={18} className="text-primary mt-0.5" />
               <div>
-                <p className="font-semibold">{envio.direccion?.calle}</p>
+                <p className="font-semibold">{envio.direccionDestino?.calle}</p>
                 <p className="text-sm text-muted-foreground">
-                  {envio.direccion?.ciudad}, {envio.direccion?.provincia}
+                  {envio.direccionDestino?.ciudad}, {envio.direccionDestino?.provincia}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  CP {envio.direccion?.cod_postal} — {envio.direccion?.pais}
+                  CP {envio.direccionDestino?.cod_postal} — {envio.direccionDestino?.pais}
                 </p>
               </div>
             </div>
           </div>
+
+          {/* DIRECCIÓN ORIGEN — solo si existe */}
+          {envio.direccionOrigen && (
+            <div className="bg-card border border-border rounded-2xl p-6">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                Dirección de origen
+              </p>
+              <div className="flex items-start gap-2">
+                <MapPin size={18} className="text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="font-semibold">{envio.direccionOrigen.calle}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {envio.direccionOrigen.ciudad}, {envio.direccionOrigen.provincia}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    CP {envio.direccionOrigen.cod_postal} — {envio.direccionOrigen.pais}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* FECHA ESTIMADA */}
           <div className="bg-card border border-border rounded-2xl p-6">
@@ -150,75 +170,59 @@ export default async function DetalleEnvioPage({
               <span className="font-semibold">
                 {envio.fecha_entrega_estimada
                   ? new Date(envio.fecha_entrega_estimada).toLocaleDateString("es-AR", {
-                      day: "numeric",
-                      month: "long",
                       year: "numeric",
+                      month: "long",
+                      day: "numeric",
                     })
-                  : "Sin fecha estimada"}
+                  : "Sin fecha"}
               </span>
             </div>
           </div>
 
           {/* IDs */}
-          <div className="bg-card border border-border rounded-2xl p-6 md:col-span-2">
-            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">
+          <div className="bg-card border border-border rounded-2xl p-6 space-y-3">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
               Identificadores
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
-                  <Hash size={12} /> Order ID
-                </p>
-                <p className="text-sm font-mono break-all">{envio.order_id}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
-                  <User size={12} /> Seller ID
-                </p>
-                <p className="text-sm font-mono break-all">{envio.seller_id}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
-                  <User size={12} /> Buyer ID
-                </p>
-                <p className="text-sm font-mono break-all">{envio.buyer_id}</p>
-              </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Hash size={14} className="text-muted-foreground" />
+              <span className="text-muted-foreground">Orden:</span>
+              <span className="font-mono text-xs">{envio.order_id}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <User size={14} className="text-muted-foreground" />
+              <span className="text-muted-foreground">Seller:</span>
+              <span className="font-mono text-xs">{envio.seller_id}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <User size={14} className="text-muted-foreground" />
+              <span className="text-muted-foreground">Buyer:</span>
+              <span className="font-mono text-xs">{envio.buyer_id}</span>
             </div>
           </div>
+        </div>
 
-          {/* HISTORIAL */}
-          <div className="bg-card border border-border rounded-2xl p-6 md:col-span-2">
-            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-6">
-              Historial de movimientos
+        {/* HISTORIAL */}
+        {envio.eventos.length > 0 && (
+          <div className="mt-8 bg-card border border-border rounded-2xl p-6">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">
+              Historial de eventos
             </p>
-            <div className="border-l-2 border-border ml-4 space-y-4">
-              {envio.eventos.map((evento, index) => (
-                <div key={evento.id} className="relative pl-6">
-                  <div
-                    className={`absolute w-3 h-3 rounded-full -left-[7px] top-1.5 ${
-                      index === 0 ? "bg-primary animate-pulse" : "bg-muted-foreground"
-                    }`}
-                  />
-                  <p className="text-sm font-semibold uppercase tracking-wide">
-                    {evento.descripcion}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(evento.timestamp).toLocaleString("es-AR", {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    })}
-                  </p>
+            <div className="space-y-3">
+              {envio.eventos.map((evento) => (
+                <div key={evento.id} className="flex items-start gap-3 text-sm">
+                  <div className="w-2 h-2 rounded-full bg-primary mt-1.5 shrink-0" />
+                  <div>
+                    <p>{evento.descripcion}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(evento.timestamp).toLocaleString("es-AR")}
+                    </p>
+                  </div>
                 </div>
               ))}
-              {envio.eventos.length === 0 && (
-                <p className="pl-6 text-sm text-muted-foreground">
-                  No hay eventos registrados.
-                </p>
-              )}
             </div>
           </div>
-
-        </div>
+        )}
       </div>
     </main>
   );

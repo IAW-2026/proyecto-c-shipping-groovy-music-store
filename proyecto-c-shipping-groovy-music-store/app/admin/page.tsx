@@ -7,9 +7,9 @@ import { getCurrentUser } from "@/lib/auth";
 import { normalizarEstado } from "@/lib/utils";
 
 export default async function AdminPage() {
+  // El middleware ya bloqueó no-admins, esto es fallback
   const user = await getCurrentUser();
   if (!user) redirect("/no-autorizado");
-  if (user.role !== "ADMIN") redirect("/no-autorizado");
 
   const empresas = await prisma.empresa.findMany({
     orderBy: { nombre: "asc" },
@@ -54,7 +54,6 @@ export default async function AdminPage() {
     };
   });
 
-  // Totales globales para el pie de la tabla
   const totales = filas.reduce(
     (acc, f) => ({
       total: acc.total + f.total,

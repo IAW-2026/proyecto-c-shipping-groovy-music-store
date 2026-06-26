@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { requiereAuth } from "@/lib/auth-api";
+import { asignarEmpresaPorCp } from "@/lib/asignarEmpresa";
 
 function calcularCosto(peso: number, distancia: number): number {
   const BASE = 1500;
@@ -8,20 +9,22 @@ function calcularCosto(peso: number, distancia: number): number {
   return Math.round(BASE + peso * POR_KG + distancia * POR_KM);
 }
 
-function calcularDias(distancia: number): number {
-  if (distancia < 500) return 3;
-  if (distancia < 1000) return 5;
-  return 7;
+function calcularFechaEstimada(distancia: number): string {
+  const dias = distancia < 500 ? 3 : distancia < 1000 ? 5 : 7;
+  const fecha = new Date();
+  fecha.setDate(fecha.getDate() + dias);
+  return fecha.toISOString();
 }
 
 function estimarDistancia(origenCp: number, destinoCp: number): number {
   return Math.abs(origenCp - destinoCp) * 0.5;
 }
 
+// Calcular costo de envío (Buyer → Shipping, endpoint #9)
 export async function GET(req: NextRequest) {
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ error: "no_autenticado" }, { status: 401 });
+  const authResult = await requiereAuth(req);
+  if ("error" in authResult) {
+    return NextResponse.json(authResult.error, { status: authResult.status });
   }
 
   const params = req.nextUrl.searchParams;
@@ -37,9 +40,11 @@ export async function GET(req: NextRequest) {
   }
 
   const distancia = estimarDistancia(Number(origenCp), Number(destinoCp));
+  const empresa = await asignarEmpresaPorCp(destinoCp);
 
   return NextResponse.json({
     costo: calcularCosto(Number(peso), distancia),
-    fechaEntregaEstimada: calcularDias(distancia),
+    fechaEntregaEstimada: calcularFechaEstimada(distancia),
+    empresa: empresa ? { id: empresa.id, nombre: empresa.nombre } : null,
   });
 }

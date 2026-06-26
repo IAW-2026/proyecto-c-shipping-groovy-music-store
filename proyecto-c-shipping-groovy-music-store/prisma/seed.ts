@@ -1,258 +1,147 @@
 import { PrismaClient } from "@prisma/client";
+import { SELLER_ID, DIRECCIONES, ORDENES, ENVIO_IDS } from "./contrato-datos";
 
 const prisma = new PrismaClient();
 
+// estado_global del contrato -> Envio.estado real de Shipping. Solo existen
+// estos 3: Seller no crea el Envio hasta que despacha (estado "ENVIADO" de su
+// lado), así que las órdenes anteriores a eso ni aparecen acá.
+const MAPA_ENVIO_ESTADO: Record<string, string> = {
+  ENVIADO_EN_PREPARACION: "EN PREPARACIÓN",
+  EN_CAMINO: "EN CAMINO",
+  ENTREGADO: "ENTREGADO",
+};
+
+// Plantillas de eventos según el estado final del envío — mismo estilo
+// narrativo que ya usaba tu seed anterior.
+const EVENTOS_POR_ESTADO: Record<string, string[]> = {
+  "EN PREPARACIÓN": ["Pedido recibido en depósito"],
+  "EN CAMINO": ["Pedido recibido en depósito", "Envío despachado", "Repartidor en camino"],
+  "ENTREGADO": ["Pedido recibido en depósito", "Envío despachado", "Repartidor en camino", "Pedido entregado exitosamente"],
+};
+
 async function main() {
+  console.log(" Iniciando seed de Shipping...");
 
-  const fastShip = await prisma.empresa.create({
-    data: { nombre: "FastShip Logistics" },
-  });
+  await prisma.eventoDeEnvio.deleteMany();
+  await prisma.envio.deleteMany();
+  await prisma.direccion.deleteMany();
+  await prisma.usuario.deleteMany();
+  await prisma.empresa.deleteMany();
 
-  const groovy = await prisma.empresa.create({
-    data: { nombre: "Groovy Express" },
-  });
+  console.log("✓ Tablas limpiadas");
 
-  const urban = await prisma.empresa.create({
-    data: { nombre: "Urban Delivery" },
-  });
+  // ─── Empresas (mismos nombres que ya usa el contrato en empresa_envio) ──
+  const fastShip = await prisma.empresa.create({ data: { nombre: "FastShip Logistics" } });
+  const groovy = await prisma.empresa.create({ data: { nombre: "Groovy Express" } });
+  const urban = await prisma.empresa.create({ data: { nombre: "Urban Delivery" } });
 
+  const empresaPorNombre: Record<string, string> = {
+    "FastShip Logistics": fastShip.id,
+    "Groovy Express": groovy.id,
+    "Urban Delivery": urban.id,
+  };
+
+  console.log("✓ 3 empresas creadas");
+
+  // ─── Usuarios (staff de Shipping — no son parte del contrato compartido,
+  // son cuentas Clerk propias de esta app, igual que las tenías) ──────────
   await prisma.usuario.createMany({
     data: [
-      {
-        id_clerk: "user_3EVKE9kMVXfMJwBhN1kgNYaj8qi",
-        mail: "shippingadmin@gmail.com",
-        role: "ADMIN",
-        empresaId: fastShip.id,
-      },
-      {
-        id_clerk: "user_3Dx6Z8xLItQFGSViwJkorIGTpEk",
-        mail: "franciscouyua11@gmail.com",
-        role: "ADMIN",
-        empresaId: fastShip.id,
-      },
-      {
-        id_clerk: "user_3E2YATmnKT9g1Z2SKTnQIlFpO2V",
-        mail: "uyuafrancisco151@gmail.com",
-        role: "OPERADOR",
-        empresaId: fastShip.id,
-      },
-      {
-        id_clerk: "user_3EVJ89cP7CJgPS8CoPBNJnuMID0",
-        mail: "operadorfastShip@gmail.com",
-        role: "OPERADOR",
-        empresaId: fastShip.id,
-      },
-      {
-        id_clerk: "user_3EVBatBt4ywVQ6SBH5CmpOFFzfB",
-        mail: "operadorgroovy24@gmail.com",
-        role: "OPERADOR",
-        empresaId: groovy.id,
-      },
-      {
-        id_clerk: "user_3EVK4YOxXbaCPauRYbzvrQ3vBTJ",
-        mail: "operadorUrban@urban.com",
-        role: "OPERADOR",
-        empresaId: urban.id,
-      },
+      { id_clerk: "user_3EVKE9kMVXfMJwBhN1kgNYaj8qi", mail: "shippingadmin@gmail.com", role: "ADMIN", empresaId: fastShip.id },
+      { id_clerk: "user_3Dx6Z8xLItQFGSViwJkorIGTpEk", mail: "franciscouyua11@gmail.com", role: "ADMIN", empresaId: fastShip.id },
+      { id_clerk: "user_3E2YATmnKT9g1Z2SKTnQIlFpO2V", mail: "uyuafrancisco151@gmail.com", role: "OPERADOR", empresaId: fastShip.id },
+      { id_clerk: "user_3EVJ89cP7CJgPS8CoPBNJnuMID0", mail: "operadorfastShip@gmail.com", role: "OPERADOR", empresaId: fastShip.id },
+      { id_clerk: "user_3EVBatBt4ywVQ6SBH5CmpOFFzfB", mail: "operadorgroovy24@gmail.com", role: "OPERADOR", empresaId: groovy.id },
+      { id_clerk: "user_3EVK4YOxXbaCPauRYbzvrQ3vBTJ", mail: "operadorUrban@urban.com", role: "OPERADOR", empresaId: urban.id },
     ],
   });
 
-  const direccion1 = await prisma.direccion.create({
-    data: { calle: "Castelli 785", ciudad: "Bahia Blanca", provincia: "Buenos Aires", cod_postal: "8000", pais: "Argentina" },
-  });
-  const direccion2 = await prisma.direccion.create({
-    data: { calle: "San Martín 123", ciudad: "Córdoba", provincia: "Córdoba", cod_postal: "5000", pais: "Argentina" },
-  });
-  const direccion3 = await prisma.direccion.create({
-    data: { calle: "Belgrano 456", ciudad: "Rosario", provincia: "Santa Fe", cod_postal: "2000", pais: "Argentina" },
-  });
-  const direccion4 = await prisma.direccion.create({
-    data: { calle: "Mitre 999", ciudad: "Mendoza", provincia: "Mendoza", cod_postal: "5500", pais: "Argentina" },
-  });
-  const direccion5 = await prisma.direccion.create({
-    data: { calle: "Sarmiento 44", ciudad: "San Miguel de Tucumán", provincia: "Tucumán", cod_postal: "4000", pais: "Argentina" },
-  });
-  const direccion6 = await prisma.direccion.create({
-    data: { calle: "Moreno 876", ciudad: "La Plata", provincia: "Buenos Aires", cod_postal: "1900", pais: "Argentina" },
-  });
-  const direccion7 = await prisma.direccion.create({
-    data: { calle: "Rivadavia 1010", ciudad: "Mar del Plata", provincia: "Buenos Aires", cod_postal: "7600", pais: "Argentina" },
-  });
+  console.log("✓ 6 usuarios de Shipping creados");
 
-  // EN CAMINO → fecha estimada en 2-3 días
-  const envio1 = await prisma.envio.create({
-    data: {
-      codigo_seguimiento: "GRV-0001",
-      order_id: "550e8400-e29b-41d4-a716-446655440001",
-      seller_id: "user_seller_a1b2c3d4",
-      buyer_id: "user_buyer_x9y8z7w6",
-      direccion_id: direccion1.id,
-      estado: "EN CAMINO",
-      empresaId: fastShip.id,
-      fecha_entrega_estimada: new Date("2026-06-02T00:00:00Z"),
-    },
-  });
+  // ─── Envíos + dirección + eventos, solo para las órdenes que el contrato
+  // marca con un ENVIO_IDS no nulo (las que Seller llegó a despachar) ──────
+  let creados = 0;
+  let contador = 1;
 
-  // ENTREGADO → fecha estimada en el pasado
-  const envio2 = await prisma.envio.create({
-    data: {
-      codigo_seguimiento: "GRV-0002",
-      order_id: "550e8400-e29b-41d4-a716-446655440002",
-      seller_id: "user_seller_e5f6g7h8",
-      buyer_id: "user_buyer_v5u4t3s2",
-      direccion_id: direccion2.id,
-      estado: "ENTREGADO",
-      empresaId: groovy.id,
-      fecha_entrega_estimada: new Date("2026-05-20T00:00:00Z"),
-    },
-  });
+  for (const orden of ORDENES) {
+    const envioId = ENVIO_IDS[orden.id];
+    if (!envioId) continue;
 
-  // EN PREPARACIÓN → fecha estimada en 6-7 días
-  const envio3 = await prisma.envio.create({
-    data: {
-      codigo_seguimiento: "GRV-0003",
-      order_id: "550e8400-e29b-41d4-a716-446655440003",
-      seller_id: "user_seller_i9j0k1l2",
-      buyer_id: "user_buyer_r1q2p3o4",
-      direccion_id: direccion3.id,
-      estado: "EN PREPARACIÓN",
-      empresaId: urban.id,
-      fecha_entrega_estimada: new Date("2026-06-07T00:00:00Z"),
-    },
-  });
+    const estado = MAPA_ENVIO_ESTADO[orden.estado_global];
+    const dir = DIRECCIONES[orden.buyer_id];
 
-  const envio4 = await prisma.envio.create({
-    data: {
-      codigo_seguimiento: "GRV-0004",
-      order_id: "550e8400-e29b-41d4-a716-446655440004",
-      seller_id: "user_seller_m3n4o5p6",
-      buyer_id: "user_buyer_m5n6o7p8",
-      direccion_id: direccion4.id,
-      estado: "EN CAMINO",
-      empresaId: fastShip.id,
-      fecha_entrega_estimada: new Date("2026-06-03T00:00:00Z"),
-    },
-  });
+    // Cada despacho real crea su propia Direccion (así lo hace /api/shipments
+    // hoy: nunca reutiliza una existente, aunque sea el mismo comprador).
+    const direccion = await prisma.direccion.create({
+      data: {
+        calle: dir.calle,
+        ciudad: dir.ciudad,
+        provincia: dir.provincia,
+        cod_postal: dir.cod_postal,
+        pais: dir.pais,
+      },
+    });
 
-  const envio5 = await prisma.envio.create({
-    data: {
-      codigo_seguimiento: "GRV-0005",
-      order_id: "550e8400-e29b-41d4-a716-446655440005",
-      seller_id: "user_seller_q1w2e3r4",
-      buyer_id: "user_buyer_a1s2d3f4",
-      direccion_id: direccion5.id,
-      estado: "ENTREGADO",
-      empresaId: groovy.id,
-      fecha_entrega_estimada: new Date("2026-05-15T00:00:00Z"),
-    },
-  });
+    // Estimamos 5 días de tránsito desde que se hizo la orden. Para entregados
+    // (órdenes viejas) esto cae en el pasado; para en camino/en preparación
+    // (órdenes recientes) cae a futuro — exactamente como debería verse.
+    const fechaEntregaEstimada = new Date(
+      Date.now() - (orden.dias_atras - 5) * 86_400_000
+    );
 
-  const envio6 = await prisma.envio.create({
-    data: {
-      codigo_seguimiento: "GRV-0006",
-      order_id: "550e8400-e29b-41d4-a716-446655440006",
-      seller_id: "user_seller_z1x2c3v4",
-      buyer_id: "user_buyer_p1o2i3u4",
-      direccion_id: direccion6.id,
-      estado: "EN PREPARACIÓN",
-      empresaId: urban.id,
-      fecha_entrega_estimada: new Date("2026-06-08T00:00:00Z"),
-    },
-  });
+    const envio = await prisma.envio.create({
+      data: {
+        id: envioId,
+        order_id: orden.id,
+        codigo_seguimiento: `GRV-${String(contador).padStart(4, "0")}`,
+        fecha_entrega_estimada: fechaEntregaEstimada,
+        seller_id: SELLER_ID,
+        buyer_id: orden.buyer_id,
+        direccion_destino_id: direccion.id,
+        estado,
+        empresaId: empresaPorNombre[orden.empresa_envio],
+      },
+    });
+    contador++;
+    creados++;
 
-  const envio7 = await prisma.envio.create({
-    data: {
-      codigo_seguimiento: "GRV-0007",
-      order_id: "550e8400-e29b-41d4-a716-446655440007",
-      seller_id: "user_seller_t1y2u3i4",
-      buyer_id: "user_buyer_l1k2j3h4",
-      direccion_id: direccion7.id,
-      estado: "EN CAMINO",
-      empresaId: fastShip.id,
-      fecha_entrega_estimada: new Date("2026-06-04T00:00:00Z"),
-    },
-  });
+    // Eventos repartidos entre el día después de la orden y "ahora" (o la
+    // fecha estimada, si ya fue entregado).
+    const descripciones = EVENTOS_POR_ESTADO[estado];
+    const inicio = Date.now() - (orden.dias_atras - 1) * 86_400_000;
+    const fin = estado === "ENTREGADO" ? fechaEntregaEstimada.getTime() : Date.now();
 
-  const envio8 = await prisma.envio.create({
-    data: {
-      codigo_seguimiento: "GRV-0008",
-      order_id: "550e8400-e29b-41d4-a716-446655440008",
-      seller_id: "user_seller_m1n2b3v4",
-      buyer_id: "user_buyer_g1f2d3s4",
-      direccion_id: direccion1.id,
-      estado: "ENTREGADO",
-      empresaId: fastShip.id,
-      fecha_entrega_estimada: new Date("2026-05-25T00:00:00Z"),
-    },
-  });
+    await prisma.eventoDeEnvio.createMany({
+      data: descripciones.map((descripcion, i) => ({
+        envio_id: envio.id,
+        descripcion,
+        timestamp: new Date(
+          descripciones.length === 1
+            ? inicio
+            : inicio + (i * (fin - inicio)) / (descripciones.length - 1)
+        ),
+      })),
+    });
+  }
 
-  const envio9 = await prisma.envio.create({
-    data: {
-      codigo_seguimiento: "GRV-0009",
-      order_id: "550e8400-e29b-41d4-a716-446655440009",
-      seller_id: "user_seller_r1t2y3u4",
-      buyer_id: "user_buyer_m1n2b3v4",
-      direccion_id: direccion2.id,
-      estado: "EN PREPARACIÓN",
-      empresaId: groovy.id,
-      fecha_entrega_estimada: new Date("2026-06-09T00:00:00Z"),
-    },
-  });
+  console.log(`✓ ${creados} envíos creados (de ${ORDENES.length} órdenes en el contrato)`);
 
-  const envio10 = await prisma.envio.create({
-    data: {
-      codigo_seguimiento: "GRV-0010",
-      order_id: "550e8400-e29b-41d4-a716-446655440010",
-      seller_id: "user_seller_c1x2z3a4",
-      buyer_id: "user_buyer_q1w2e3r4",
-      direccion_id: direccion3.id,
-      estado: "EN CAMINO",
-      empresaId: urban.id,
-      fecha_entrega_estimada: new Date("2026-06-05T00:00:00Z"),
-    },
-  });
+  // ─── Resumen ──────────────────────────────────────────────────────────
+  const porEstado = await prisma.envio.groupBy({ by: ["estado"], _count: { _all: true } });
+  const porEmpresa = await prisma.envio.groupBy({ by: ["empresaId"], _count: { _all: true } });
+  const totalEventos = await prisma.eventoDeEnvio.count();
 
-  await prisma.eventoDeEnvio.createMany({
-    data: [
-      { envio_id: envio1.id, descripcion: "Pedido recibido en depósito" },
-      { envio_id: envio1.id, descripcion: "Envío despachado" },
-      { envio_id: envio1.id, descripcion: "Repartidor en camino" },
-
-      { envio_id: envio2.id, descripcion: "Pedido confirmado" },
-      { envio_id: envio2.id, descripcion: "En tránsito a destino" },
-      { envio_id: envio2.id, descripcion: "Pedido entregado exitosamente" },
-
-      { envio_id: envio3.id, descripcion: "Esperando preparación" },
-
-      { envio_id: envio4.id, descripcion: "Retirado por operador logístico" },
-      { envio_id: envio4.id, descripcion: "En tránsito a destino" },
-
-      { envio_id: envio5.id, descripcion: "Empaquetado y rotulado" },
-      { envio_id: envio5.id, descripcion: "Despachado a sucursal destino" },
-      { envio_id: envio5.id, descripcion: "Pedido entregado exitosamente" },
-
-      { envio_id: envio6.id, descripcion: "Orden recibida" },
-      { envio_id: envio6.id, descripcion: "Esperando recolección del vendedor" },
-
-      { envio_id: envio7.id, descripcion: "Ingreso a planta troncal" },
-      { envio_id: envio7.id, descripcion: "En viaje a ciudad destino" },
-
-      { envio_id: envio8.id, descripcion: "Preparado" },
-      { envio_id: envio8.id, descripcion: "Visita a domicilio" },
-      { envio_id: envio8.id, descripcion: "Entregado a un adulto" },
-
-      { envio_id: envio9.id, descripcion: "Pago confirmado, en preparación" },
-
-      { envio_id: envio10.id, descripcion: "Recibido en centro logístico" },
-      { envio_id: envio10.id, descripcion: "En camino al domicilio del comprador" },
-    ],
-  });
+  console.log("");
+  console.log("📊 Resumen del seed:");
+  console.log(`   Empresas: 3 | Usuarios: 6`);
+  console.log(`   Envíos:   ${creados}`);
+  for (const g of porEstado) console.log(`     - ${g.estado}: ${g._count._all}`);
+  console.log(`   Eventos de envío: ${totalEventos}`);
+  console.log("");
+  console.log("✅ Seed completado.");
 }
 
 main()
-  .catch((e) => {
-    console.error(e);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+  .catch((e) => { console.error(e); process.exit(1); })
+  .finally(async () => { await prisma.$disconnect(); });
