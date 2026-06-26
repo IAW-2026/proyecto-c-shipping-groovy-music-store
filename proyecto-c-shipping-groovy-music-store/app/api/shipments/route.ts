@@ -94,7 +94,7 @@ export async function GET(req: NextRequest) {
           direccionDestino: true,
           direccionOrigen: true,
         },
-        orderBy: { id: "desc" },
+        orderBy: { createdAt: "desc" },
         skip: (pagina - 1) * limite,
         take: limite,
       }),
@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
   try {
     const result = await prisma.$transaction(async (tx) => {
       const empresas = await tx.empresa.findMany({
-        orderBy: { createdAt: "desc" },
+        orderBy: { id: "asc" },
         select: { id: true, nombre: true },
       });
       if (empresas.length === 0) throw new Error("sin_empresa");
