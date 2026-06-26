@@ -127,9 +127,9 @@ export default function EnvioCard({ envio }: { envio: any }) {
           <MapPin className="text-muted-foreground mt-0.5" size={18} />
           <div>
             <p className="text-xs text-muted-foreground font-semibold uppercase mb-0.5">Destino</p>
-            <p className="text-sm font-medium">{envio.direccion?.calle}</p>
+            <p className="text-sm font-medium">{envio.direccionDestino?.calle}</p>
             <p className="text-xs text-muted-foreground">
-              {envio.direccion?.ciudad}, {envio.direccion?.provincia}
+              {envio.direccionDestino?.ciudad}, {envio.direccionDestino?.provincia}
             </p>
             {/* Solo se muestra si el envío tiene fecha estimada cargada */}
             {envio.fecha_entrega_estimada && (

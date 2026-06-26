@@ -1,16 +1,13 @@
-// app/shipping/nuevo/page.tsx
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import FormularioNuevoEnvio from "@/app/componentes/FormularioNuevoEnvio";
 
 export default async function NuevoEnvioPage() {
-  // Protección: solo admins
+  // El middleware ya bloqueó no-admins, esto es fallback
   const user = await getCurrentUser();
   if (!user) redirect("/no-autorizado");
-  if (user.role !== "ADMIN") redirect("/no-autorizado");
 
-  // Traemos las empresas para el selector
   const empresas = await prisma.empresa.findMany({
     select: { id: true, nombre: true },
   });
